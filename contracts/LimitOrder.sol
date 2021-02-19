@@ -19,7 +19,7 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
     struct OrderArgs {
         address maker; 
         uint256 amountIn; 
-        uint256 amountOutMin; 
+        uint256 amountOut; 
         address recipient; 
         uint8 v; 
         bytes32 r;
@@ -30,7 +30,7 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
     // See https://eips.ethereum.org/EIPS/eip-191
     string private constant EIP191_PREFIX_FOR_EIP712_STRUCTURED_DATA = "\x19\x01";
     bytes32 private constant DOMAIN_SEPARATOR_SIGNATURE_HASH = keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
-    bytes32 private constant ORDER_TYPEHASH = keccak256("LimitOrder(address maker,address tokenIn,address tokenOut,uint256 amountIn,uint256 amountOutMin,address recipient)");
+    bytes32 private constant ORDER_TYPEHASH = keccak256("LimitOrder(address maker,address tokenIn,address tokenOut,uint256 amountIn,uint256 amountOut,address recipient)");
     bytes32 private immutable DOMAIN_SEPARATOR;
 
     uint256 public constant FEE_DIVISOR=1e6;
@@ -88,7 +88,7 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
                             tokenIn,
                             tokenOut,
                             order.amountIn,
-                            order.amountOutMin,
+                            order.amountOut,
                             order.recipient
                         )
                     )
@@ -101,7 +101,7 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
         require(recoveredAddress == order.maker && recoveredAddress != address(0), "Limit: not maker");
 
         uint256 amountToBeFilled = order.amountIn.mul(order.fillShare) / FILL_SHARE_DIVISOR;
-        uint256 amountToBeReturned = order.amountOutMin.mul(order.fillShare) / FILL_SHARE_DIVISOR;
+        uint256 amountToBeReturned = order.amountOut.mul(order.fillShare) / FILL_SHARE_DIVISOR;
 
         uint256 newFilledAmount = orderStatus[digest].add(amountToBeFilled);
         require(newFilledAmount <= order.amountIn, "Order: don't go over 100%");
@@ -158,7 +158,7 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
                             args.tokenIn,
                             args.tokenOut,
                             order[i].amountIn,
-                            order[i].amountOutMin,
+                            order[i].amountOut,
                             order[i].recipient
                         )
                     )
@@ -172,7 +172,7 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
 
             uint256 amountToBeFilled = totals.amountToBeFilled.add(order[i].amountIn.mul(order[i].fillShare) / FILL_SHARE_DIVISOR);
             totals.amountToBeFilled = totals.amountToBeFilled.add(amountToBeFilled);
-            amountToBeReturned[i] = order[i].amountOutMin.mul(order[i].fillShare) / FILL_SHARE_DIVISOR;
+            amountToBeReturned[i] = order[i].amountOut.mul(order[i].fillShare) / FILL_SHARE_DIVISOR;
             totals.amountToBeReturned = totals.amountToBeReturned.add(amountToBeReturned[i]);
 
             uint256 newFilledAmount = orderStatus[digest].add(amountToBeFilled);
