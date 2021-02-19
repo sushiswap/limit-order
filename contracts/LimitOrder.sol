@@ -97,21 +97,22 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
         
         require(!cancelledOrder[order.maker][digest], "LimitOrder: Cancelled");
 
-        address recoveredAddress = ecrecover(digest, order.v, order.r, order.s);
-        require(recoveredAddress == order.maker && recoveredAddress != address(0), "Limit: not maker");
+        require(ecrecover(digest, order.v, order.r, order.s) == order.maker, "Limit: not maker");
 
         // Amount is either the right amount or short changed
-        uint256 amountToBeReturned = order.amountOut.mul(order.amountToBeFilled) / order.amountIn;
+        uint256 amountToBeReturned = order.amountOut.mul(order.amountToFill) / order.amountIn;
 
-        uint256 newFilledAmount = orderStatus[digest].add(order.amountToBeFilled);
+        {
+        uint256 newFilledAmount = orderStatus[digest].add(order.amountToFill);
         require(newFilledAmount <= order.amountIn, "Order: don't go over 100%");
 
         // Effects
         orderStatus[digest] = newFilledAmount;
+        }
 
-        tokenIn.safeTransferFrom(recoveredAddress, address(receiver), order.amountToBeFilled);
+        tokenIn.safeTransferFrom(order.maker, address(receiver), order.amountToFill);
 
-        receiver.onLimitOrder(tokenIn, tokenOut, order.amountToBeFilled, amountToBeReturned, data);
+        receiver.onLimitOrder(tokenIn, tokenOut, order.amountToFill, amountToBeReturned, data);
 
         uint256 _feesCollected = feesCollected[tokenOut];
         require(tokenOut.balanceOf(address(this)) >= amountToBeReturned.add(_feesCollected), "Limit: not enough");
@@ -124,7 +125,7 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
             tokenOut.safeTransfer(order.recipient, amountToBeReturned.sub(fee));
         }
         
-        emit LogFillOrder(digest, receiver, order.fillShare);
+        emit LogFillOrder(digest, receiver, order.amountToFill);
 
     }
     
@@ -173,20 +174,24 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
             address recoveredAddress = ecrecover(digest, order[i].v, order[i].r, order[i].s);
             require(recoveredAddress == order[i].maker && recoveredAddress != address(0), "Limit: not maker");
 
-            totals.amountToBeFilled = totals.amountToBeFilled.add(order[i].amountToBeFilled);
+            totals.amountToBeFilled = totals.amountToBeFilled.add(order[i].amountToFill);
             
-            amountToBeReturned[i] = order[i].amountOut.mul(order[i].amountToBeFilled) / order[i].amountIn;
+            amountToBeReturned[i] = order[i].amountOut.mul(order[i].amountToFill) / order[i].amountIn;
             totals.amountToBeReturned = totals.amountToBeReturned.add(amountToBeReturned[i]);
 
-            uint256 newFilledAmount = orderStatus[digest].add(order[i].amountToBeFilled);
+            {
+                
+            uint256 newFilledAmount = orderStatus[digest].add(order[i].amountToFill);
             require(newFilledAmount <= order[i].amountIn, "Order: don't go over 100%");
 
             // Effects
             orderStatus[digest] = newFilledAmount;
 
-            args.tokenIn.safeTransferFrom(recoveredAddress, address(args.receiver), order[i].amountToBeFilled);
+            }
 
-            emit LogFillOrder(digest, args.receiver, order[i].fillShare);
+            args.tokenIn.safeTransferFrom(recoveredAddress, address(args.receiver), order[i].amountToFill);
+
+            emit LogFillOrder(digest, args.receiver, order[i].amountToFill);
         }
         
         args.receiver.onLimitOrder(args.tokenIn, args.tokenOut, totals.amountToBeFilled, totals.amountToBeReturned, data);
