@@ -68,15 +68,8 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
         externalOrderFee = _externalOrderFee;
     }
 
-    function fillOrder(
-            OrderArgs memory order,
-            IERC20 tokenIn,
-            IERC20 tokenOut, 
-            ILimitOrderReceiver receiver, 
-            bytes calldata data) 
-    public {
-
-        bytes32 digest =
+    function _calculateDigestAndCheck(OrderArgs memory order, IERC20 tokenIn, IERC20 tokenOut) internal view returns (bytes32 digest) {
+        digest =
             keccak256(
                 abi.encodePacked(
                     EIP191_PREFIX_FOR_EIP712_STRUCTURED_DATA,
@@ -98,6 +91,17 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
         require(!cancelledOrder[order.maker][digest], "LimitOrder: Cancelled");
 
         require(ecrecover(digest, order.v, order.r, order.s) == order.maker, "Limit: not maker");
+    }
+
+    function fillOrder(
+            OrderArgs memory order,
+            IERC20 tokenIn,
+            IERC20 tokenOut, 
+            ILimitOrderReceiver receiver, 
+            bytes calldata data) 
+    public {
+
+        bytes32 digest = _calculateDigestAndCheck(order, tokenIn, tokenOut);
 
         // Amount is either the right amount or short changed
         uint256 amountToBeReturned = order.amountOut.mul(order.amountToFill) / order.amountIn;
@@ -129,58 +133,31 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
 
     }
     
-    struct TotalAmounts {
-        uint256 amountToBeFilled;
-        uint256 amountToBeReturned;
-    }
-
-    struct BatchFillOrderArgs {
-        IERC20 tokenIn;
-        IERC20 tokenOut; 
-        ILimitOrderReceiver receiver;
-    }
 
     function batchFillOrder(
             OrderArgs[] memory order,
-            BatchFillOrderArgs memory args,
+            IERC20 tokenIn,
+            IERC20 tokenOut,
+            ILimitOrderReceiver receiver, 
             bytes calldata data) 
     external {
         uint256[] memory amountToBeReturned = new uint256[](order.length);
-        TotalAmounts memory totals;
+        uint256 totalAmountToBeFilled;
+        uint256 totalAmountToBeReturned;
 
         for(uint256 i = 0; 0 < order.length; i++) {
+            
+            // put digest calculation in subfunction
 
-            bytes32 digest =
-            keccak256(
-                abi.encodePacked(
-                    EIP191_PREFIX_FOR_EIP712_STRUCTURED_DATA,
-                    DOMAIN_SEPARATOR,
-                    keccak256(
-                        abi.encode(
-                            ORDER_TYPEHASH,
-                            order[i].maker,
-                            args.tokenIn,
-                            args.tokenOut,
-                            order[i].amountIn,
-                            order[i].amountOut,
-                            order[i].recipient
-                        )
-                    )
-                )
-            );
-        
-            require(!cancelledOrder[order[i].maker][digest], "LimitOrder: Cancelled");
+            bytes32 digest = _calculateDigestAndCheck(order[i], tokenIn, tokenOut);
 
-            address recoveredAddress = ecrecover(digest, order[i].v, order[i].r, order[i].s);
-            require(recoveredAddress == order[i].maker && recoveredAddress != address(0), "Limit: not maker");
-
-            totals.amountToBeFilled = totals.amountToBeFilled.add(order[i].amountToFill);
+            totalAmountToBeFilled = totalAmountToBeFilled.add(order[i].amountToFill);
             
             amountToBeReturned[i] = order[i].amountOut.mul(order[i].amountToFill) / order[i].amountIn;
-            totals.amountToBeReturned = totals.amountToBeReturned.add(amountToBeReturned[i]);
+            totalAmountToBeReturned = totalAmountToBeReturned.add(amountToBeReturned[i]);
 
             {
-                
+
             uint256 newFilledAmount = orderStatus[digest].add(order[i].amountToFill);
             require(newFilledAmount <= order[i].amountIn, "Order: don't go over 100%");
 
@@ -189,27 +166,27 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
 
             }
 
-            args.tokenIn.safeTransferFrom(recoveredAddress, address(args.receiver), order[i].amountToFill);
+            tokenIn.safeTransferFrom(order[i].maker, address(receiver), order[i].amountToFill);
 
-            emit LogFillOrder(digest, args.receiver, order[i].amountToFill);
+            emit LogFillOrder(digest, receiver, order[i].amountToFill);
         }
         
-        args.receiver.onLimitOrder(args.tokenIn, args.tokenOut, totals.amountToBeFilled, totals.amountToBeReturned, data);
+        receiver.onLimitOrder(tokenIn, tokenOut, totalAmountToBeFilled, totalAmountToBeReturned, data);
 
-        uint256 _feesCollected = feesCollected[args.tokenOut];
-        require(args.tokenOut.balanceOf(address(this)) >= totals.amountToBeReturned.add(_feesCollected), "Limit: not enough");
+        uint256 _feesCollected = feesCollected[tokenOut];
+        require(tokenOut.balanceOf(address(this)) >= totalAmountToBeReturned.add(_feesCollected), "Limit: not enough");
 
-        if(isWhiteListed[args.receiver]) {
+        if(isWhiteListed[receiver]) {
             for(uint256 i = 0; 0 < order.length; i++) {
-                args.tokenOut.safeTransfer(order[i].recipient, amountToBeReturned[i]);
+                tokenOut.safeTransfer(order[i].recipient, amountToBeReturned[i]);
             }   
         } else {
             for(uint256 i = 0; 0 < order.length; i++) {
                 uint256 fee = amountToBeReturned[i].mul(externalOrderFee) / FEE_DIVISOR;
-                args.tokenOut.safeTransfer(order[i].recipient, amountToBeReturned[i].sub(fee));
+                tokenOut.safeTransfer(order[i].recipient, amountToBeReturned[i].sub(fee));
             }
-            uint256 totalFee = totals.amountToBeReturned.mul(externalOrderFee) / FEE_DIVISOR;
-            feesCollected[args.tokenOut] = _feesCollected.add(totalFee);
+            uint256 totalFee = totalAmountToBeReturned.mul(externalOrderFee) / FEE_DIVISOR;
+            feesCollected[tokenOut] = _feesCollected.add(totalFee);
         }
 
     }
