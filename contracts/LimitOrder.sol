@@ -46,10 +46,13 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
 
     mapping(bytes32 => uint256) public orderStatus;
 
+    mapping(IERC20 => uint256) public feesCollected;
+
     event LogFillOrder(bytes32 indexed digest, ILimitOrderReceiver receiver, uint256 fillShare);
-    event LogOrderCancelled(bytes32 indexed digest);
+    event LogOrderCancelled(address indexed user, bytes32 indexed digest);
     event LogSetFees(address indexed feeTo, uint256 externalOrderFee);
     event LogWhiteListReceiver(ILimitOrderReceiver indexed receiver);
+    event LogFeesCollected(IERC20 indexed token, address indexed feeTo, uint256 amount);
     
     constructor(uint256 _externalOrderFee) public {
         uint256 chainId;
@@ -113,12 +116,15 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
 
         receiver.onLimitOrder(tokenIn, tokenOut, amountToBeFilled, amountToBeReturned, data);
 
+        uint256 _feesCollected = feesCollected[tokenOut];
+        require(tokenOut.balanceOf(address(this)) >= amountToBeReturned.add(_feesCollected), "Limit: not enough");
+
         if(isWhiteListed[receiver]) {
             tokenOut.safeTransfer(order.recipient, amountToBeReturned);
         } else {
             uint256 fee = amountToBeReturned.mul(externalOrderFee) / FEE_DIVISOR;
+            feesCollected[tokenOut] = _feesCollected.add(fee);
             tokenOut.safeTransfer(order.recipient, amountToBeReturned.sub(fee));
-            tokenOut.safeTransfer(feeTo, fee);
         }
         
         emit LogFillOrder(digest, receiver, order.fillShare);
@@ -188,6 +194,9 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
         
         args.receiver.onLimitOrder(args.tokenIn, args.tokenOut, totals.amountToBeFilled, totals.amountToBeReturned, data);
 
+        uint256 _feesCollected = feesCollected[args.tokenOut];
+        require(args.tokenOut.balanceOf(address(this)) >= totals.amountToBeReturned.add(_feesCollected), "Limit: not enough");
+
         if(isWhiteListed[args.receiver]) {
             for(uint256 i = 0; 0 < order.length; i++) {
                 args.tokenOut.safeTransfer(order[i].recipient, amountToBeReturned[i]);
@@ -198,19 +207,21 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
                 args.tokenOut.safeTransfer(order[i].recipient, amountToBeReturned[i].sub(fee));
             }
             uint256 totalFee = totals.amountToBeReturned.mul(externalOrderFee) / FEE_DIVISOR;
-            args.tokenOut.safeTransfer(feeTo, totalFee);
+            feesCollected[args.tokenOut] = _feesCollected.add(totalFee);
         }
 
     }
     
     function cancelOrder(bytes32 hash) public {
         cancelledOrder[msg.sender][hash] = true;
-        emit LogOrderCancelled(hash);
+        emit LogOrderCancelled(msg.sender, hash);
     }
 
-    function swipe (IERC20 token) public {
-        uint256 balance = token.balanceOf(address(this));
+    function swipeFees (IERC20 token) public {
+        feesCollected[token] = 1;
+        uint256 balance = token.balanceOf(address(this)).sub(1);
         token.safeTransfer(feeTo, balance);
+        emit LogFeesCollected(token, feeTo, balance);
     }
 
     function setFees(address _feeTo, uint256 _externalOrderFee) external onlyOwner {
