@@ -9,8 +9,6 @@ import "@boringcrypto/boring-solidity/contracts/BoringBatchable.sol";
 import "@boringcrypto/boring-solidity/contracts/libraries/BoringMath.sol";
 import "@boringcrypto/boring-solidity/contracts/libraries/BoringERC20.sol";
 import "./interfaces/ILimitOrderReceiver.sol";
-import "./libraries/SignedSafeMath.sol";
-
 
 contract LimitOrder is BoringOwnable, BoringBatchable {
     using BoringMath for uint256;
