@@ -1,13 +1,13 @@
-import { Greeter } from "../typechain";
+import { LimitOrder } from "../typechain";
 
 export default async ({ getNamedAccounts, deployments }) => {
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
 
-  const { address }: Greeter = await deploy("Greeter", {
+  const { address }: LimitOrder = await deploy("LimitOrder", {
     from: deployer,
     args: ["Hello, world!"],
   });
 
-  console.log(`Greeter deployed to ${address}`);
+  console.log(`LimitOrder deployed to ${address}`);
 };
