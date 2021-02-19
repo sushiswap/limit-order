@@ -24,7 +24,7 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
         uint8 v; 
         bytes32 r;
         bytes32 s; 
-        uint256 fillShare;
+        uint256 amountToFill;
     }
 
     // See https://eips.ethereum.org/EIPS/eip-191
@@ -34,7 +34,6 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
     bytes32 private immutable DOMAIN_SEPARATOR;
 
     uint256 public constant FEE_DIVISOR=1e6;
-    uint256 public constant FILL_SHARE_DIVISOR=1e18;
 
     uint256 public externalOrderFee;
 
@@ -103,18 +102,18 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
         address recoveredAddress = ecrecover(digest, order.v, order.r, order.s);
         require(recoveredAddress == order.maker && recoveredAddress != address(0), "Limit: not maker");
 
-        uint256 amountToBeFilled = order.amountIn.mul(order.fillShare) / FILL_SHARE_DIVISOR;
-        uint256 amountToBeReturned = order.amountOut.mul(order.fillShare) / FILL_SHARE_DIVISOR;
+        // Amount is either the right amount or short changed
+        uint256 amountToBeReturned = order.amountOut.mul(order.amountToBeFilled) / order.amountIn;
 
-        uint256 newFilledAmount = orderStatus[digest].add(amountToBeFilled);
+        uint256 newFilledAmount = orderStatus[digest].add(order.amountToBeFilled);
         require(newFilledAmount <= order.amountIn, "Order: don't go over 100%");
 
         // Effects
         orderStatus[digest] = newFilledAmount;
 
-        tokenIn.safeTransferFrom(recoveredAddress, address(receiver), amountToBeFilled);
+        tokenIn.safeTransferFrom(recoveredAddress, address(receiver), order.amountToBeFilled);
 
-        receiver.onLimitOrder(tokenIn, tokenOut, amountToBeFilled, amountToBeReturned, data);
+        receiver.onLimitOrder(tokenIn, tokenOut, order.amountToBeFilled, amountToBeReturned, data);
 
         uint256 _feesCollected = feesCollected[tokenOut];
         require(tokenOut.balanceOf(address(this)) >= amountToBeReturned.add(_feesCollected), "Limit: not enough");
@@ -176,18 +175,18 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
             address recoveredAddress = ecrecover(digest, order[i].v, order[i].r, order[i].s);
             require(recoveredAddress == order[i].maker && recoveredAddress != address(0), "Limit: not maker");
 
-            uint256 amountToBeFilled = totals.amountToBeFilled.add(order[i].amountIn.mul(order[i].fillShare) / FILL_SHARE_DIVISOR);
-            totals.amountToBeFilled = totals.amountToBeFilled.add(amountToBeFilled);
-            amountToBeReturned[i] = order[i].amountOut.mul(order[i].fillShare) / FILL_SHARE_DIVISOR;
+            totals.amountToBeFilled = totals.amountToBeFilled.add(order[i].amountToBeFilled);
+            
+            amountToBeReturned[i] = order[i].amountOut.mul(order[i].amountToBeFilled) / order[i].amountIn;
             totals.amountToBeReturned = totals.amountToBeReturned.add(amountToBeReturned[i]);
 
-            uint256 newFilledAmount = orderStatus[digest].add(amountToBeFilled);
+            uint256 newFilledAmount = orderStatus[digest].add(order[i].amountToBeFilled);
             require(newFilledAmount <= order[i].amountIn, "Order: don't go over 100%");
 
             // Effects
             orderStatus[digest] = newFilledAmount;
 
-            args.tokenIn.safeTransferFrom(recoveredAddress, address(args.receiver), amountToBeFilled);
+            args.tokenIn.safeTransferFrom(recoveredAddress, address(args.receiver), order[i].amountToBeFilled);
 
             emit LogFillOrder(digest, args.receiver, order[i].fillShare);
         }
