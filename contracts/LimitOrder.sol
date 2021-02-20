@@ -2,7 +2,6 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-
 import "hardhat/console.sol";
 import "@boringcrypto/boring-solidity/contracts/BoringOwnable.sol";
 import "@boringcrypto/boring-solidity/contracts/BoringBatchable.sol";
@@ -10,6 +9,7 @@ import "@boringcrypto/boring-solidity/contracts/libraries/BoringMath.sol";
 import "@boringcrypto/boring-solidity/contracts/libraries/BoringERC20.sol";
 import "./interfaces/ILimitOrderReceiver.sol";
 
+// TODO: Run prettier?
 contract LimitOrder is BoringOwnable, BoringBatchable {
     using BoringMath for uint256;
     using BoringERC20 for IERC20;
@@ -32,19 +32,16 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
     bytes32 private immutable DOMAIN_SEPARATOR;
 
     uint256 public constant FEE_DIVISOR=1e6;
-
     uint256 public externalOrderFee;
-
     address public feeTo;
 
     mapping(ILimitOrderReceiver => bool) private isWhiteListed;
-
     mapping(address => mapping(bytes32 => bool)) public cancelledOrder;
-
     mapping(bytes32 => uint256) public orderStatus;
 
     mapping(IERC20 => uint256) public feesCollected;
 
+    // TODO: This event doesn't tell you anything about the order. Should this include the order details?
     event LogFillOrder(bytes32 indexed digest, ILimitOrderReceiver receiver, uint256 fillShare);
     event LogOrderCancelled(address indexed user, bytes32 indexed digest);
     event LogSetFees(address indexed feeTo, uint256 externalOrderFee);
@@ -68,7 +65,7 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
         externalOrderFee = _externalOrderFee;
     }
 
-    function _calculateDigestAndCheck(OrderArgs memory order, IERC20 tokenIn, IERC20 tokenOut) internal view returns (bytes32 digest) {
+    function _preFillOrder(OrderArgs memory order, IERC20 tokenIn, IERC20 tokenOut, ILimitOrderReceiver receiver) internal view returns (bytes32 digest, uint256 amountToBeReturned) {
         digest =
             keccak256(
                 abi.encodePacked(
@@ -91,6 +88,25 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
         require(!cancelledOrder[order.maker][digest], "LimitOrder: Cancelled");
 
         require(ecrecover(digest, order.v, order.r, order.s) == order.maker, "Limit: not maker");
+        
+        // Amount is either the right amount or short changed
+        amountToBeReturned = order.amountOut.mul(order.amountToFill) / order.amountIn;
+
+        uint256 newFilledAmount = orderStatus[digest].add(order.amountToFill);
+        require(newFilledAmount <= order.amountIn, "Order: don't go over 100%");
+
+        // Effects
+        orderStatus[digest] = newFilledAmount;
+
+        tokenIn.safeTransferFrom(order.maker, address(receiver), order.amountToFill);
+        emit LogFillOrder(digest, receiver, order.amountToFill);
+    }
+
+    function _fillOrderInternal(IERC20 tokenIn, IERC20 tokenOut, ILimitOrderReceiver receiver, bytes calldata data, uint256 amountToFill, uint256 amountToBeReturned) internal {
+        receiver.onLimitOrder(tokenIn, tokenOut, order.amountToFill, amountToBeReturned, data);
+
+        uint256 _feesCollected = feesCollected[tokenOut];
+        require(tokenOut.balanceOf(address(this)) >= amountToBeReturned.add(_feesCollected), "Limit: not enough");
     }
 
     function fillOrder(
@@ -100,40 +116,34 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
             ILimitOrderReceiver receiver, 
             bytes calldata data) 
     public {
-
-        bytes32 digest = _calculateDigestAndCheck(order, tokenIn, tokenOut);
-
-        // Amount is either the right amount or short changed
-        uint256 amountToBeReturned = order.amountOut.mul(order.amountToFill) / order.amountIn;
-
-        {
-        uint256 newFilledAmount = orderStatus[digest].add(order.amountToFill);
-        require(newFilledAmount <= order.amountIn, "Order: don't go over 100%");
-
-        // Effects
-        orderStatus[digest] = newFilledAmount;
-        }
-
-        tokenIn.safeTransferFrom(order.maker, address(receiver), order.amountToFill);
-
-        receiver.onLimitOrder(tokenIn, tokenOut, order.amountToFill, amountToBeReturned, data);
-
-        uint256 _feesCollected = feesCollected[tokenOut];
-        require(tokenOut.balanceOf(address(this)) >= amountToBeReturned.add(_feesCollected), "Limit: not enough");
-
-        if(isWhiteListed[receiver]) {
-            tokenOut.safeTransfer(order.recipient, amountToBeReturned);
-        } else {
-            uint256 fee = amountToBeReturned.mul(externalOrderFee) / FEE_DIVISOR;
-            feesCollected[tokenOut] = _feesCollected.add(fee);
-            tokenOut.safeTransfer(order.recipient, amountToBeReturned.sub(fee));
-        }
+        require(isWhiteListed[receiver], "LimitOrder: not whitelisted");
         
-        emit LogFillOrder(digest, receiver, order.amountToFill);
+        (bytes32 digest, uint256 amountToBeReturned) = _preFillOrder(order, tokenIn, tokenOut, receiver);
+        
+        _fillOrderInternal(tokenIn, tokenOut, receiver, data, amountToFill, amountToBeReturned);
 
+        tokenOut.safeTransfer(order.recipient, amountToBeReturned);
     }
-    
 
+    function fillOrderOpen(
+            OrderArgs memory order,
+            IERC20 tokenIn,
+            IERC20 tokenOut, 
+            ILimitOrderReceiver receiver, 
+            bytes calldata data) 
+    public {
+        (bytes32 digest, uint256 amountToBeReturned) = _preFillOrder(order, tokenIn, tokenOut, receiver);
+        _fillOrderInternal(tokenIn, tokenOut, receiver, data, amountToFill, amountToBeReturned);
+
+        uint256 fee = amountToBeReturned.mul(externalOrderFee) / FEE_DIVISOR;
+        feesCollected[tokenOut] = _feesCollected.add(fee);
+        // TODO: This seems wrong: taking the fee from the user... this way they get less returned depending on how the order was executed.
+        // Either they always pay a fee, so the whitelisted call reduces the amountToBeReturned by the fee amount OR the fee gets added, so the order
+        // executes at a higher price.
+        tokenOut.safeTransfer(order.recipient, amountToBeReturned.sub(fee));
+    }
+
+    // Fix up like above, IF you like this way if doing it.    
     function batchFillOrder(
             OrderArgs[] memory order,
             IERC20 tokenIn,
@@ -146,29 +156,10 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
         uint256 totalAmountToBeReturned;
 
         for(uint256 i = 0; 0 < order.length; i++) {
-            
-            // put digest calculation in subfunction
-
-            bytes32 digest = _calculateDigestAndCheck(order[i], tokenIn, tokenOut);
+            bytes32 (digest, amountToBeReturned[i]) = _preFillOrder(order[i], tokenIn, tokenOut, receiver);
 
             totalAmountToBeFilled = totalAmountToBeFilled.add(order[i].amountToFill);
-            
-            amountToBeReturned[i] = order[i].amountOut.mul(order[i].amountToFill) / order[i].amountIn;
             totalAmountToBeReturned = totalAmountToBeReturned.add(amountToBeReturned[i]);
-
-            {
-
-            uint256 newFilledAmount = orderStatus[digest].add(order[i].amountToFill);
-            require(newFilledAmount <= order[i].amountIn, "Order: don't go over 100%");
-
-            // Effects
-            orderStatus[digest] = newFilledAmount;
-
-            }
-
-            tokenIn.safeTransferFrom(order[i].maker, address(receiver), order[i].amountToFill);
-
-            emit LogFillOrder(digest, receiver, order[i].amountToFill);
         }
         
         receiver.onLimitOrder(tokenIn, tokenOut, totalAmountToBeFilled, totalAmountToBeReturned, data);
@@ -188,7 +179,6 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
             uint256 totalFee = totalAmountToBeReturned.mul(externalOrderFee) / FEE_DIVISOR;
             feesCollected[tokenOut] = _feesCollected.add(totalFee);
         }
-
     }
     
     function cancelOrder(bytes32 hash) public {
@@ -213,5 +203,4 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
         isWhiteListed[receiver] = true;
         emit LogWhiteListReceiver(receiver);
     }
-
 }
