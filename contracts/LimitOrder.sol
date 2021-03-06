@@ -31,7 +31,9 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
     string private constant EIP191_PREFIX_FOR_EIP712_STRUCTURED_DATA = "\x19\x01";
     bytes32 private constant DOMAIN_SEPARATOR_SIGNATURE_HASH = keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
     bytes32 private constant ORDER_TYPEHASH = keccak256("LimitOrder(address maker,address tokenIn,address tokenOut,uint256 amountIn,uint256 amountOut,address recipient,uint256 startTime,uint256 endTime)");
-    bytes32 private immutable DOMAIN_SEPARATOR;
+    bytes32 private immutable _DOMAIN_SEPARATOR;
+    uint256 public immutable deploymentChainId;
+
 
     uint256 public constant FEE_DIVISOR=1e6;
     
@@ -57,7 +59,15 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
         assembly {
             chainId := chainid()
         }
-        DOMAIN_SEPARATOR = keccak256(
+        deploymentChainId = chainId;
+        _DOMAIN_SEPARATOR = _calculateDomainSeparator(chainId);
+
+        externalOrderFee = _externalOrderFee;
+    }
+
+    /// @dev Calculate the DOMAIN_SEPARATOR
+    function _calculateDomainSeparator(uint256 chainId) internal view returns (bytes32) {
+        return keccak256(
             abi.encode(
                 DOMAIN_SEPARATOR_SIGNATURE_HASH,
                 keccak256("LimitOrder"),
@@ -65,16 +75,22 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
                 address(this)
             )
         );
-
-        externalOrderFee = _externalOrderFee;
     }
+
+    /// @dev Return the DOMAIN_SEPARATOR
+    function DOMAIN_SEPARATOR() internal view returns (bytes32) {
+        uint256 chainId;
+        assembly {chainId := chainid()}
+        return chainId == deploymentChainId ? _DOMAIN_SEPARATOR : _calculateDomainSeparator(chainId);
+    }
+
 
     function _preFillOrder(OrderArgs memory order, IERC20 tokenIn, IERC20 tokenOut, ILimitOrderReceiver receiver) internal returns (bytes32 digest, uint256 amountToBeReturned) {
         digest =
             keccak256(
                 abi.encodePacked(
                     EIP191_PREFIX_FOR_EIP712_STRUCTURED_DATA,
-                    DOMAIN_SEPARATOR,
+                    DOMAIN_SEPARATOR(),
                     keccak256(
                         abi.encode(
                             ORDER_TYPEHASH,
