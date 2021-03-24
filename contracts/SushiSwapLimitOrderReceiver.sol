@@ -18,8 +18,8 @@ contract SushiSwapLimitOrderReceiver is ILimitOrderReceiver {
     }
 
     function onLimitOrder (IERC20, IERC20 tokenOut, uint256 amountIn, uint256 amountMinOut, bytes calldata data) override external {
-        (address[] memory path, address to) = abi.decode(data, (address[], address));
-        _swapExactTokensForTokens(address(this), amountIn, amountMinOut, path, address(this));
+        (address[] memory path, uint256 amountOutMinExternal, address to) = abi.decode(data, (address[], uint256, address));
+        _swapExactTokensForTokens(address(this), amountIn, amountOutMinExternal, path, address(this));
         tokenOut.safeTransfer(msg.sender, amountMinOut);
         tokenOut.safeTransfer(to, tokenOut.balanceOf(address(this)));
     }
