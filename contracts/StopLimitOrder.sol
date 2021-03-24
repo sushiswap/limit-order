@@ -120,8 +120,10 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
     function _preFillOrder(OrderArgs memory order, IERC20 tokenIn, IERC20 tokenOut, ILimitOrderReceiver receiver) internal returns (bytes32 digest, uint256 amountToBeReturned) {
         
         {
-            (bool success, uint256 rate) = order.oracleAddress.get(order.oracleData);
-            require(success && rate > order.stopPrice, "Stop price not reached");
+            if(order.oracleAddress != IOracle(0)){
+                (bool success, uint256 rate) = order.oracleAddress.get(order.oracleData);
+                require(success && rate > order.stopPrice, "Stop price not reached");
+            }
         }
 
         digest = _getDigest(order, tokenIn, tokenOut);
