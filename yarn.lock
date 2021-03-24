@@ -30,9 +30,13 @@
   dependencies:
     regenerator-runtime "^0.13.4"
 
-"@boringcrypto/boring-solidity@boringcrypto/BoringSolidity#e06e943":
-  version "1.0.4"
-  resolved "https://codeload.github.com/boringcrypto/BoringSolidity/tar.gz/e06e943e7e8a168ed0395ef663a17fd71a6949a2"
+"@boringcrypto/boring-solidity@boringcrypto/BoringSolidity#1ffb100":
+  version "1.2.0"
+  resolved "https://codeload.github.com/boringcrypto/BoringSolidity/tar.gz/1ffb10098028f76b460d7930357714f6f2ae40b8"
+
+"@boringcrypto/boring-solidity@boringcrypto/BoringSolidity#371a01c11465eb1c881193c60a53c0bf15ee8a19":
+  version "1.2.1"
+  resolved "https://codeload.github.com/boringcrypto/BoringSolidity/tar.gz/371a01c11465eb1c881193c60a53c0bf15ee8a19"
 
 "@commitlint/cli@^11.0.0":
   version "11.0.0"
@@ -780,6 +784,12 @@
   version "0.8.2"
   resolved "https://registry.yarnpkg.com/@solidity-parser/parser/-/parser-0.8.2.tgz#a6a5e93ac8dca6884a99a532f133beba59b87b69"
   integrity sha512-8LySx3qrNXPgB5JiULfG10O3V7QTxI/TLzSw5hFQhXWSkVxZBAv4rZQ0sYgLEbc8g3L2lmnujj1hKul38Eu5NQ==
+
+"@sushiswap/bentobox-sdk@sushiswap/bentobox-sdk#e3f809870b86afbd57e0930662221d2362a160db":
+  version "1.0.2"
+  resolved "https://codeload.github.com/sushiswap/bentobox-sdk/tar.gz/e3f809870b86afbd57e0930662221d2362a160db"
+  dependencies:
+    "@boringcrypto/boring-solidity" boringcrypto/BoringSolidity#371a01c11465eb1c881193c60a53c0bf15ee8a19
 
 "@sushiswap/core@^1.2.1":
   version "1.4.2"
