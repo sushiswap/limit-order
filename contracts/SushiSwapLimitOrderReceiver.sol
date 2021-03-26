@@ -6,6 +6,7 @@ pragma experimental ABIEncoderV2;
 import "@boringcrypto/boring-solidity/contracts/libraries/BoringERC20.sol";
 import "@sushiswap/core/contracts/uniswapv2/libraries/UniswapV2Library.sol";
 import "@sushiswap/core/contracts/uniswapv2/libraries/TransferHelper.sol";
+import "@sushiswap/bentobox-sdk/contracts/IBentoBoxV1.sol";
 import "./interfaces/ILimitOrderReceiver.sol";
 
 contract SushiSwapLimitOrderReceiver is ILimitOrderReceiver {
@@ -13,15 +14,19 @@ contract SushiSwapLimitOrderReceiver is ILimitOrderReceiver {
 
     address private immutable factory;
 
-    constructor (address _factory) public {
+    IBentoBoxV1 private immutable bentoBox;
+
+    constructor (address _factory, IBentoBoxV1 _bentoBox) public {
         factory = _factory;
+        bentoBox = _bentoBox;
     }
 
-    function onLimitOrder (IERC20, IERC20 tokenOut, uint256 amountIn, uint256 amountMinOut, bytes calldata data) override external {
+    function onLimitOrder (IERC20 tokenIn, IERC20 tokenOut, uint256 amountIn, uint256 amountMinOut, bytes calldata data) override external {
+        bentoBox.withdraw(tokenIn, address(this), address(this), amountIn, 0);
         (address[] memory path, uint256 amountOutMinExternal, address to) = abi.decode(data, (address[], uint256, address));
         _swapExactTokensForTokens(address(this), amountIn, amountOutMinExternal, path, address(this));
-        tokenOut.safeTransfer(msg.sender, amountMinOut);
-        tokenOut.safeTransfer(to, tokenOut.balanceOf(address(this)));
+        bentoBox.deposit(tokenOut, address(this), msg.sender, amountMinOut, 0);
+        bentoBox.deposit(tokenOut, address(this), to, tokenOut.balanceOf(address(this)), 0);
     }
 
     // Swaps an exact amount of tokens for another token through the path passed as an argument

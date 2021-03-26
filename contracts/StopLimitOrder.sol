@@ -7,6 +7,8 @@ import "@boringcrypto/boring-solidity/contracts/BoringOwnable.sol";
 import "@boringcrypto/boring-solidity/contracts/BoringBatchable.sol";
 import "@boringcrypto/boring-solidity/contracts/libraries/BoringMath.sol";
 import "@boringcrypto/boring-solidity/contracts/libraries/BoringERC20.sol";
+import "@boringcrypto/boring-solidity/contracts/libraries/BoringRebase.sol";
+import "@sushiswap/bentobox-sdk/contracts/IBentoBoxV1.sol";
 import "./interfaces/ILimitOrderReceiver.sol";
 import "./interfaces/IOracle.sol";
 
@@ -14,6 +16,7 @@ import "./interfaces/IOracle.sol";
 contract LimitOrder is BoringOwnable, BoringBatchable {
     using BoringMath for uint256;
     using BoringERC20 for IERC20;
+    using RebaseLibrary for Rebase;
 
     struct OrderArgs {
         address maker; 
@@ -37,7 +40,7 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
     bytes32 private constant ORDER_TYPEHASH = keccak256("LimitOrder(address maker,address tokenIn,address tokenOut,uint256 amountIn,uint256 amountOut,address recipient,uint256 startTime,uint256 endTime, uint256 stopPrice, address oracleAddress, bytes32 oracleData)");
     bytes32 private immutable _DOMAIN_SEPARATOR;
     uint256 public immutable deploymentChainId;
-
+    IBentoBoxV1 private immutable bentoBox;
 
     uint256 public constant FEE_DIVISOR=1e6;
     
@@ -58,7 +61,7 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
     event LogWhiteListReceiver(ILimitOrderReceiver indexed receiver);
     event LogFeesCollected(IERC20 indexed token, address indexed feeTo, uint256 amount);
     
-    constructor(uint256 _externalOrderFee) public {
+    constructor(uint256 _externalOrderFee, IBentoBoxV1 _bentoBox) public {
         uint256 chainId;
         assembly {
             chainId := chainid()
@@ -67,6 +70,8 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
         _DOMAIN_SEPARATOR = _calculateDomainSeparator(chainId);
 
         externalOrderFee = _externalOrderFee;
+
+        bentoBox = _bentoBox;
     }
 
     /// @dev Calculate the DOMAIN_SEPARATOR
@@ -143,7 +148,8 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
         // Effects
         orderStatus[digest] = newFilledAmount;
 
-        tokenIn.safeTransferFrom(order.maker, address(receiver), order.amountToFill);
+        bentoBox.transfer(tokenIn, order.maker, address(receiver), bentoBox.toShare(tokenIn, order.amountToFill, false));
+
         emit LogFillOrder(order.maker, digest, receiver, order.amountToFill);
     }
 
@@ -159,7 +165,7 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
         receiver.onLimitOrder(tokenIn, tokenOut, amountToFill, amountToBeReturned.add(fee), data);
 
         _feesCollected = feesCollected[tokenOut];
-        require(tokenOut.balanceOf(address(this)) >= amountToBeReturned.add(fee).add(_feesCollected), "Limit: not enough");
+        require(bentoBox.balanceOf(tokenOut, address(this)) >= bentoBox.toShare(tokenOut, amountToBeReturned.add(fee), true).add(_feesCollected), "Limit: not enough");
     }
 
     function fillOrder(
@@ -175,7 +181,8 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
         
         _fillOrderInternal(tokenIn, tokenOut, receiver, data, order.amountToFill, amountToBeReturned, 0);
 
-        tokenOut.safeTransfer(order.recipient, amountToBeReturned);
+        bentoBox.transfer(tokenOut, address(this), order.recipient, bentoBox.toShare(tokenOut, amountToBeReturned, false));
+
     }
 
     function fillOrderOpen(
@@ -190,9 +197,9 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
 
         uint256 _feesCollected = _fillOrderInternal(tokenIn, tokenOut, receiver, data, order.amountToFill, amountToBeReturned, fee);
 
-        feesCollected[tokenOut] = _feesCollected.add(fee);
+        feesCollected[tokenOut] = _feesCollected.add(bentoBox.toShare(tokenOut, fee, true));
 
-        tokenOut.safeTransfer(order.recipient, amountToBeReturned);
+        bentoBox.transfer(tokenOut, address(this), order.recipient, bentoBox.toShare(tokenOut, amountToBeReturned, false));
     }
 
     function batchFillOrder(
@@ -216,8 +223,10 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
         }
         _fillOrderInternal(tokenIn, tokenOut, receiver, data, totalAmountToBeFilled, totalAmountToBeReturned, 0);
 
+        Rebase memory bentoBoxTotals = bentoBox.totals(tokenOut);
+
         for(uint256 i = 0; 0 < order.length; i++) {
-            tokenOut.safeTransfer(order[i].recipient, amountToBeReturned[i]);
+            bentoBox.transfer(tokenOut, address(this), order[i].recipient, bentoBoxTotals.toBase(amountToBeReturned[i], false));
         }
     }
 
@@ -241,13 +250,19 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
         
         uint256 totalFee = totalAmountToBeReturned.mul(externalOrderFee) / FEE_DIVISOR;
 
+        {
+            
         uint256 _feesCollected = _fillOrderInternal(tokenIn, tokenOut, receiver, data, totalAmountToBeFilled, totalAmountToBeReturned, totalFee);
+        feesCollected[tokenOut] = _feesCollected.add(bentoBox.toShare(tokenOut, totalFee, true));
 
-        for(uint256 i = 0; 0 < order.length; i++) {
-            tokenOut.safeTransfer(order[i].recipient, amountToBeReturned[i]);
         }
 
-        feesCollected[tokenOut] = _feesCollected.add(totalFee);
+        Rebase memory bentoBoxTotals = bentoBox.totals(tokenOut);
+
+        for(uint256 i = 0; 0 < order.length; i++) {
+            bentoBox.transfer(tokenOut, address(this), order[i].recipient, bentoBoxTotals.toBase(amountToBeReturned[i], false));
+        }
+
 
     }
     
