@@ -83,7 +83,7 @@
     "typescript": "^4.1.0"
   },
   "dependencies": {
-    "@sushiswap/core": "^1.2.1",
-    "@sushiswap/bentobox-sdk": "sushiswap/bentobox-sdk#e3f809870b86afbd57e0930662221d2362a160db"
+    "@sushiswap/bentobox-sdk": "sushiswap/bentobox-sdk#e3f809870b86afbd57e0930662221d2362a160db",
+    "@sushiswap/core": "^1.2.1"
   }
 }
