@@ -31,8 +31,7 @@ contract SushiSwapLimitOrderReceiver is ILimitOrderReceiver {
     function onLimitOrder (IERC20 tokenIn, IERC20 tokenOut, uint256 amountIn, uint256 amountMinOut, bytes calldata data) override external {
         bentoBox.withdraw(tokenIn, address(this), address(this), amountIn, 0);
         (address[] memory path, uint256 amountOutMinExternal, address to) = abi.decode(data, (address[], uint256, address));
-        uint256 amountOut = _swapExactTokensForTokens(amountIn, amountOutMinExternal, path, address(this));
-        tokenOut.safeTransfer(address(bentoBox), amountOut);
+        uint256 amountOut = _swapExactTokensForTokens(amountIn, amountOutMinExternal, path, address(bentoBox));
         bentoBox.deposit(tokenOut, address(bentoBox), msg.sender, amountMinOut, 0);
         bentoBox.deposit(tokenOut, address(bentoBox), to, amountOut.sub(amountMinOut), 0);
     }
