@@ -13,7 +13,7 @@ import "./interfaces/ILimitOrderReceiver.sol";
 import "./interfaces/IOracle.sol";
 
 // TODO: Run prettier?
-contract LimitOrder is BoringOwnable, BoringBatchable {
+contract StopLimitOrder is BoringOwnable, BoringBatchable {
     using BoringMath for uint256;
     using BoringERC20 for IERC20;
     using RebaseLibrary for Rebase;
@@ -23,21 +23,21 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
         uint256 amountIn; 
         uint256 amountOut; 
         address recipient; 
-        uint8 v; 
-        bytes32 r;
-        bytes32 s; 
-        uint256 amountToFill;
         uint256 startTime;
         uint256 endTime;
         uint256 stopPrice;
         IOracle oracleAddress;
         bytes oracleData;
+        uint256 amountToFill;
+        uint8 v; 
+        bytes32 r;
+        bytes32 s;
     }
 
     // See https://eips.ethereum.org/EIPS/eip-191
     string private constant EIP191_PREFIX_FOR_EIP712_STRUCTURED_DATA = "\x19\x01";
     bytes32 private constant DOMAIN_SEPARATOR_SIGNATURE_HASH = keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
-    bytes32 private constant ORDER_TYPEHASH = keccak256("LimitOrder(address maker,address tokenIn,address tokenOut,uint256 amountIn,uint256 amountOut,address recipient,uint256 startTime,uint256 endTime, uint256 stopPrice, address oracleAddress, bytes32 oracleData)");
+    bytes32 private constant ORDER_TYPEHASH = keccak256("LimitOrder(address maker,address tokenIn,address tokenOut,uint256 amountIn,uint256 amountOut,address recipient,uint256 startTime,uint256 endTime,uint256 stopPrice,address oracleAddress,bytes32 oracleData)");
     bytes32 private immutable _DOMAIN_SEPARATOR;
     uint256 public immutable deploymentChainId;
     IBentoBoxV1 private immutable bentoBox;
@@ -72,6 +72,8 @@ contract LimitOrder is BoringOwnable, BoringBatchable {
         externalOrderFee = _externalOrderFee;
 
         bentoBox = _bentoBox;
+
+        _bentoBox.registerProtocol();
     }
 
     /// @dev Calculate the DOMAIN_SEPARATOR
