@@ -28,7 +28,7 @@ describe("LimitOrder", function () {
     const pairCodeHash = await this.factory.pairCodeHash()
 
     await deploy(this, [
-      ["stopLimit", this.StopLimitOrder, ["100000", this.bentoBox.address]],
+      ["stopLimit", this.StopLimitOrder, ["10000", this.bentoBox.address]],
       ["limitReceiver", this.SushiSwapLimitOrderReceiver, [this.factory.address, this.bentoBox.address, pairCodeHash]],
     ])
 
@@ -90,6 +90,21 @@ describe("LimitOrder", function () {
       .to.be.revertedWith(
         "Stop price not reached"
       )
+    })
+
+    it('Should execute with Oracel Address 0x0', async function () {
+      const order = [this.carol.address, getBigNumber(9), getBigNumber(8), this.bob.address, 0, 4078384250, getBigNumber(2), ADDRESS_ZERO, this.oracleData]
+      const {v,r,s} = getSignedLimitApprovalData(this.stopLimit, this.carol, this.carolPrivateKey, this.axa.address, this.bara.address, order)
+      
+      const orderArg = [...order, ...[getBigNumber(9), v,r,s]]
+      const digest = getLimitApprovalDigest(this.stopLimit, this.carol, this.axa.address, this.bara.address, order, this.carol.provider._network.chainId)
+
+      const data = getSushiLimitReceiverData([this.axa.address, this.bara.address], getBigNumber(1), this.bob.address)
+
+      await expect(this.stopLimit.fillOrder(orderArg, this.axa.address, this.bara.address, this.limitReceiver.address, data))
+      .to.emit(this.stopLimit, "LogFillOrder")
+      .withArgs(this.carol.address, digest, this.limitReceiver.address, getBigNumber(9))
+
     })
 
     it('Should revert when order is cancelled', async function () {
@@ -161,11 +176,13 @@ describe("LimitOrder", function () {
       const {v,r,s} = getSignedLimitApprovalData(this.stopLimit, this.carol, this.carolPrivateKey, this.axa.address, this.bara.address, order)
       
       const orderArg = [...order, ...[getBigNumber(9), v,r,s]]
-  
+      const digest = getLimitApprovalDigest(this.stopLimit, this.carol, this.axa.address, this.bara.address, order, this.carol.provider._network.chainId)
+
       const data = getSushiLimitReceiverData([this.axa.address, this.bara.address], getBigNumber(1), this.bob.address)
   
       await expect(this.stopLimit.fillOrder(orderArg, this.axa.address, this.bara.address, this.limitReceiver.address, data))
-    })
+      .to.emit(this.stopLimit, "LogFillOrder")
+      .withArgs(this.carol.address, digest, this.limitReceiver.address, getBigNumber(9))    })
 
   })
 
@@ -223,12 +240,15 @@ describe("LimitOrder", function () {
     })
   })
 
-  // describe('Swipe Fees', async function ()  {
-  //   it('Should swipe fees', async function () {
-  //     await expect(this.stopLimit.swipeFees(this.bara.address))
-  //     .to.emit(this.stopLimit, 'LogFeesCollected')
-  //   })
-  // })
+  describe('Swipe Fees', async function ()  {
+    it('Should swipe fees', async function () {
+      
+      await this.axa.transfer(this.stopLimit.address, getBigNumber(2))
+
+      await expect(this.stopLimit.swipeFees(this.axa.address))
+      .to.emit(this.stopLimit, 'LogFeesCollected')
+    })
+  })
 
   describe('Fill Order Open', async function () {
     it('Fill Open Order', async function () {
@@ -236,17 +256,104 @@ describe("LimitOrder", function () {
       const {v,r,s} = getSignedLimitApprovalData(this.stopLimit, this.carol, this.carolPrivateKey, this.axa.address, this.bara.address, order)
       
       const orderArg = [...order, ...[getBigNumber(9), v,r,s]]
-  
+
       const data = getSushiLimitReceiverData([this.axa.address, this.bara.address], getBigNumber(1), this.bob.address)
-  
-      // await expect(this.stopLimit.fillOrderOpen(orderArg, this.axa.address, this.bara.address, this.limitReceiver.address, data))
-      console.log(await this.bentoBox.balanceOf(this.bara.address, this.stopLimit.address))
-      console.log(await this.bentoBox.balanceOf(this.axa.address, this.stopLimit.address))
 
-      // console.log((await this.bara.balanceOf(this.stopLimit.address)).toString())
-      // console.log((await this.axa.balanceOf(this.stopLimit.address)).toString())
-
+      await this.stopLimit.fillOrderOpen(orderArg, this.axa.address, this.bara.address, this.limitReceiver.address, data)
     })
   })
-  
+
+  describe('Batch Fill Order', async function () {
+    it('Should revert when receiver is not whitelisted', async function () {
+      await this.axa.approve(this.bentoBox.address, getBigNumber(20))
+      await this.bentoBox.deposit(this.axa.address, this.alice.address, this.carol.address, getBigNumber(20), 0)
+      const order = [this.carol.address, getBigNumber(9), getBigNumber(8), this.bob.address, 0, 4078384250, getBigNumber(1, 17), this.oracleMock.address, this.oracleData]
+      const order2 = [this.carol.address, getBigNumber(9), getBigNumber(7), this.bob.address, 0, 4078384251, getBigNumber(1, 17), this.oracleMock.address, this.oracleData]
+      const {v,r,s} = getSignedLimitApprovalData(this.stopLimit, this.carol, this.carolPrivateKey, this.axa.address, this.bara.address, order)
+      const {v: v2, r: r2, s: s2} = getSignedLimitApprovalData(this.stopLimit, this.carol, this.carolPrivateKey, this.axa.address, this.bara.address, order2)
+
+      const orderArg = [...order, ...[getBigNumber(9), v,r,s]]
+      const orderArg2 = [...order2, ...[getBigNumber(9), v2, r2, s2]]
+
+      const data = getSushiLimitReceiverData([this.axa.address, this.bara.address], getBigNumber(1), this.bob.address)
+
+      await expect(this.stopLimit.batchFillOrder([orderArg, orderArg2], this.axa.address, this.bara.address, this.bob.address, data))
+      .to.be.revertedWith(
+        "LimitOrder: not whitelisted"
+      )  
+    })
+
+    it('Should revert if any orders have same digest', async function () {
+      await this.axa.approve(this.bentoBox.address, getBigNumber(20))
+      await this.bentoBox.deposit(this.axa.address, this.alice.address, this.carol.address, getBigNumber(20), 0)
+      const order = [this.carol.address, getBigNumber(9), getBigNumber(8), this.bob.address, 0, 4078384250, getBigNumber(1, 17), this.oracleMock.address, this.oracleData]
+      const order2 = [this.carol.address, getBigNumber(9), getBigNumber(8), this.bob.address, 0, 4078384250, getBigNumber(1, 17), this.oracleMock.address, this.oracleData]
+      const {v,r,s} = getSignedLimitApprovalData(this.stopLimit, this.carol, this.carolPrivateKey, this.axa.address, this.bara.address, order)
+      const {v: v2, r: r2, s: s2} = getSignedLimitApprovalData(this.stopLimit, this.carol, this.carolPrivateKey, this.axa.address, this.bara.address, order2)
+
+      const orderArg = [...order, ...[getBigNumber(9), v,r,s]]
+      const orderArg2 = [...order2, ...[getBigNumber(9), v2, r2, s2]]
+
+      const data = getSushiLimitReceiverData([this.axa.address, this.bara.address], getBigNumber(1), this.bob.address)
+
+      await expect(this.stopLimit.batchFillOrder([orderArg, orderArg2], this.axa.address, this.bara.address, this.limitReceiver.address, data))
+      .to.be.revertedWith(
+        "Order: don't go over 100%"
+      )  
+    })
+
+    it('Should execute Batch fill order', async function () {
+      await this.axa.approve(this.bentoBox.address, getBigNumber(20))
+      await this.bentoBox.deposit(this.axa.address, this.alice.address, this.carol.address, getBigNumber(20), 0)
+      const order = [this.carol.address, getBigNumber(9), getBigNumber(8), this.bob.address, 0, 4078384250, getBigNumber(1, 17), this.oracleMock.address, this.oracleData]
+      const order2 = [this.carol.address, getBigNumber(9), getBigNumber(7), this.bob.address, 0, 4078384251, getBigNumber(1, 17), this.oracleMock.address, this.oracleData]
+      const {v,r,s} = getSignedLimitApprovalData(this.stopLimit, this.carol, this.carolPrivateKey, this.axa.address, this.bara.address, order)
+      const {v: v2, r: r2, s: s2} = getSignedLimitApprovalData(this.stopLimit, this.carol, this.carolPrivateKey, this.axa.address, this.bara.address, order2)
+
+      const orderArg = [...order, ...[getBigNumber(9), v,r,s]]
+      const orderArg2 = [...order2, ...[getBigNumber(9), v2, r2, s2]]
+
+      const data = getSushiLimitReceiverData([this.axa.address, this.bara.address], getBigNumber(1), this.bob.address)
+
+      await this.stopLimit.batchFillOrder([orderArg, orderArg2], this.axa.address, this.bara.address, this.limitReceiver.address, data)
+      })
+  })
+
+  describe('Batch Fill Order Open', async function () {
+
+    it('Should revert if any orders have same digest', async function () {
+      await this.axa.approve(this.bentoBox.address, getBigNumber(20))
+      await this.bentoBox.deposit(this.axa.address, this.alice.address, this.carol.address, getBigNumber(20), 0)
+      const order = [this.carol.address, getBigNumber(9), getBigNumber(8), this.bob.address, 0, 4078384250, getBigNumber(1, 17), this.oracleMock.address, this.oracleData]
+      const order2 = [this.carol.address, getBigNumber(9), getBigNumber(8), this.bob.address, 0, 4078384250, getBigNumber(1, 17), this.oracleMock.address, this.oracleData]
+      const {v,r,s} = getSignedLimitApprovalData(this.stopLimit, this.carol, this.carolPrivateKey, this.axa.address, this.bara.address, order)
+      const {v: v2, r: r2, s: s2} = getSignedLimitApprovalData(this.stopLimit, this.carol, this.carolPrivateKey, this.axa.address, this.bara.address, order2)
+
+      const orderArg = [...order, ...[getBigNumber(9), v,r,s]]
+      const orderArg2 = [...order2, ...[getBigNumber(9), v2, r2, s2]]
+
+      const data = getSushiLimitReceiverData([this.axa.address, this.bara.address], getBigNumber(1), this.bob.address)
+
+      await expect(this.stopLimit.batchFillOrder([orderArg, orderArg2], this.axa.address, this.bara.address, this.limitReceiver.address, data))
+      .to.be.revertedWith(
+        "Order: don't go over 100%"
+      )  
+      })
+
+    it('Should execute Batch fill order', async function () {
+      await this.axa.approve(this.bentoBox.address, getBigNumber(20))
+      await this.bentoBox.deposit(this.axa.address, this.alice.address, this.carol.address, getBigNumber(20), 0)
+      const order = [this.carol.address, getBigNumber(9), getBigNumber(8), this.bob.address, 0, 4078384250, getBigNumber(1, 17), this.oracleMock.address, this.oracleData]
+      const order2 = [this.carol.address, getBigNumber(9), getBigNumber(7), this.bob.address, 0, 4078384251, getBigNumber(1, 17), this.oracleMock.address, this.oracleData]
+      const {v,r,s} = getSignedLimitApprovalData(this.stopLimit, this.carol, this.carolPrivateKey, this.axa.address, this.bara.address, order)
+      const {v: v2, r: r2, s: s2} = getSignedLimitApprovalData(this.stopLimit, this.carol, this.carolPrivateKey, this.axa.address, this.bara.address, order2)
+
+      const orderArg = [...order, ...[getBigNumber(9), v,r,s]]
+      const orderArg2 = [...order2, ...[getBigNumber(9), v2, r2, s2]]
+
+      const data = getSushiLimitReceiverData([this.axa.address, this.bara.address], getBigNumber(1), this.bob.address)
+
+      await this.stopLimit.batchFillOrderOpen([orderArg, orderArg2], this.axa.address, this.bara.address, this.limitReceiver.address, data)
+      })
+  })
 });
