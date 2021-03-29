@@ -30,7 +30,7 @@ export function getSushiLimitReceiverData(path, minimumOut, to) {
   )
 }
 
-function getLimitApprovalDigest(limitOrder, user, tokenIn, tokenOut, order, chainId = 1) {
+export function getLimitApprovalDigest(limitOrder, user, tokenIn, tokenOut, order, chainId = 1) {
   const DOMAIN_SEPARATOR = getLimitDomainSeparator(limitOrder.address, chainId)
   const msg = defaultAbiCoder.encode(
       ["bytes32", "address", "address", "address", "uint256", "uint256", "address", "uint256", "uint256", "uint256", "address", "bytes"],
