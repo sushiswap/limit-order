@@ -71,6 +71,8 @@ contract StopLimitOrder is BoringOwnable, BoringBatchable {
 
         externalOrderFee = _externalOrderFee;
 
+        feeTo = msg.sender;
+
         bentoBox = _bentoBox;
 
         _bentoBox.registerProtocol();
