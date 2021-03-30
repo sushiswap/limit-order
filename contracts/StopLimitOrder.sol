@@ -71,6 +71,8 @@ contract StopLimitOrder is BoringOwnable, BoringBatchable {
 
         externalOrderFee = _externalOrderFee;
 
+        feeTo = msg.sender;
+
         bentoBox = _bentoBox;
 
         _bentoBox.registerProtocol();
@@ -217,7 +219,7 @@ contract StopLimitOrder is BoringOwnable, BoringBatchable {
         uint256 totalAmountToBeFilled;
         uint256 totalAmountToBeReturned;
 
-        for(uint256 i = 0; 0 < order.length; i++) {
+        for(uint256 i = 0; i < order.length; i++) {
             (, amountToBeReturned[i]) = _preFillOrder(order[i], tokenIn, tokenOut, receiver);
 
             totalAmountToBeFilled = totalAmountToBeFilled.add(order[i].amountToFill);
@@ -227,7 +229,7 @@ contract StopLimitOrder is BoringOwnable, BoringBatchable {
 
         Rebase memory bentoBoxTotals = bentoBox.totals(tokenOut);
 
-        for(uint256 i = 0; 0 < order.length; i++) {
+        for(uint256 i = 0; i < order.length; i++) {
             bentoBox.transfer(tokenOut, address(this), order[i].recipient, bentoBoxTotals.toBase(amountToBeReturned[i], false));
         }
     }
@@ -243,7 +245,7 @@ contract StopLimitOrder is BoringOwnable, BoringBatchable {
         uint256 totalAmountToBeFilled;
         uint256 totalAmountToBeReturned;
 
-        for(uint256 i = 0; 0 < order.length; i++) {
+        for(uint256 i = 0; i < order.length; i++) {
             (, amountToBeReturned[i]) = _preFillOrder(order[i], tokenIn, tokenOut, receiver);
 
             totalAmountToBeFilled = totalAmountToBeFilled.add(order[i].amountToFill);
@@ -261,7 +263,7 @@ contract StopLimitOrder is BoringOwnable, BoringBatchable {
 
         Rebase memory bentoBoxTotals = bentoBox.totals(tokenOut);
 
-        for(uint256 i = 0; 0 < order.length; i++) {
+        for(uint256 i = 0; i < order.length; i++) {
             bentoBox.transfer(tokenOut, address(this), order[i].recipient, bentoBoxTotals.toBase(amountToBeReturned[i], false));
         }
 
