@@ -248,9 +248,7 @@ describe("LimitOrder", function () {
 
   describe('Swipe Fees', async function ()  {
     it('Should swipe fees', async function () {
-      
-      await this.axa.transfer(this.stopLimit.address, getBigNumber(2))
-
+      await this.bentoBox.connect(this.carol).transfer(this.axa.address, this.carol.address, this.stopLimit.address, getBigNumber(2))
       await expect(this.stopLimit.swipeFees(this.axa.address))
       .to.emit(this.stopLimit, 'LogFeesCollected')
     })
