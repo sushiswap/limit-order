@@ -38,9 +38,6 @@ describe("LimitOrder", function () {
 
     await createSLP(this, "axaBara", this.axa, this.bara, getBigNumber(100))
 
-
-    await this.axa.transfer(this.carol.address, getBigNumber(10))
-
     await this.axa.approve(this.bentoBox.address, getBigNumber(10))
 
     await this.bentoBox.deposit(this.axa.address, this.alice.address, this.carol.address, getBigNumber(10), 0)
@@ -52,14 +49,23 @@ describe("LimitOrder", function () {
   })
 
   it("Should allow the execution of a stopLimit through SushiSwap", async function () {
+    expect(await this.bentoBox.balanceOf(this.bara.address, this.bob.address)).to.be.equal(0)
+
     const order = [this.carol.address, getBigNumber(9), getBigNumber(8), this.bob.address, 0, 4078384250, getBigNumber(1, 17), this.oracleMock.address, this.oracleData]
     const {v,r,s} = getSignedLimitApprovalData(this.stopLimit, this.carol, this.carolPrivateKey, this.axa.address, this.bara.address, order)
     
     const orderArg = [...order, ...[getBigNumber(9), v,r,s]]
 
-    const data = getSushiLimitReceiverData([this.axa.address, this.bara.address], getBigNumber(1), this.bob.address)
+    const data = getSushiLimitReceiverData([this.axa.address, this.bara.address], getBigNumber(1), this.dev.address)
 
-    await this.stopLimit.fillOrder(orderArg, this.axa.address, this.bara.address, this.limitReceiver.address, data)
+    let digest = getLimitApprovalDigest(this.stopLimit, this.carol, this.axa.address, this.bara.address, order)
+
+    await expect(this.stopLimit.fillOrder(orderArg, this.axa.address, this.bara.address, this.limitReceiver.address, data)).to.emit(this.stopLimit, "LogFillOrder")
+    .withArgs(this.carol.address, digest, this.limitReceiver.address, getBigNumber(9))
+
+    expect(await this.bentoBox.toAmount(this.bara.address, await this.bentoBox.balanceOf(this.bara.address, this.bob.address), false)).to.be.equal(getBigNumber(8))
+
+    expect(await this.bentoBox.balanceOf(this.bara.address, this.dev.address)).to.be.equal("234149743514448533")
   });
 
   describe('Fill Order', async function () {
@@ -97,7 +103,7 @@ describe("LimitOrder", function () {
       const {v,r,s} = getSignedLimitApprovalData(this.stopLimit, this.carol, this.carolPrivateKey, this.axa.address, this.bara.address, order)
       
       const orderArg = [...order, ...[getBigNumber(9), v,r,s]]
-      const digest = getLimitApprovalDigest(this.stopLimit, this.carol, this.axa.address, this.bara.address, order, this.carol.provider._network.chainId)
+      const digest = getLimitApprovalDigest(this.stopLimit, this.carol, this.axa.address, this.bara.address, order)
 
       const data = getSushiLimitReceiverData([this.axa.address, this.bara.address], getBigNumber(1), this.bob.address)
 
@@ -115,7 +121,7 @@ describe("LimitOrder", function () {
   
       const data = getSushiLimitReceiverData([this.axa.address, this.bara.address], getBigNumber(1), this.bob.address)
 
-      const digest = getLimitApprovalDigest(this.stopLimit, this.carol, this.axa.address, this.bara.address, order, this.carol.provider._network.chainId)
+      const digest = getLimitApprovalDigest(this.stopLimit, this.carol, this.axa.address, this.bara.address, order)
 
       await expect(this.stopLimit.connect(this.carol).cancelOrder(digest))
       .to.emit(this.stopLimit, 'LogOrderCancelled')
@@ -176,7 +182,7 @@ describe("LimitOrder", function () {
       const {v,r,s} = getSignedLimitApprovalData(this.stopLimit, this.carol, this.carolPrivateKey, this.axa.address, this.bara.address, order)
       
       const orderArg = [...order, ...[getBigNumber(9), v,r,s]]
-      const digest = getLimitApprovalDigest(this.stopLimit, this.carol, this.axa.address, this.bara.address, order, this.carol.provider._network.chainId)
+      const digest = getLimitApprovalDigest(this.stopLimit, this.carol, this.axa.address, this.bara.address, order)
 
       const data = getSushiLimitReceiverData([this.axa.address, this.bara.address], getBigNumber(1), this.bob.address)
   
@@ -195,7 +201,7 @@ describe("LimitOrder", function () {
   
       const data = getSushiLimitReceiverData([this.axa.address, this.bara.address], getBigNumber(1), this.bob.address)
 
-      const digest = getLimitApprovalDigest(this.stopLimit, this.carol, this.axa.address, this.bara.address, order, this.carol.provider._network.chainId)
+      const digest = getLimitApprovalDigest(this.stopLimit, this.carol, this.axa.address, this.bara.address, order)
 
       await expect(this.stopLimit.connect(this.carol).cancelOrder(digest))
       .to.emit(this.stopLimit, 'LogOrderCancelled')
