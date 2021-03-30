@@ -177,21 +177,6 @@ describe("LimitOrder", function () {
         )
     })
 
-    it('Should update order filled amount', async function () {
-
-      expect(await this.bentoBox.balanceOf(this.bara.address, this.bob.address)).to.be.equal(0)
-
-      const order = [this.carol.address, getBigNumber(9), getBigNumber(8), this.bob.address, 0, 4078384250, getBigNumber(1, 17), this.oracleMock.address, this.oracleData]
-      const { v, r, s } = getSignedLimitApprovalData(this.stopLimit, this.carol, this.carolPrivateKey, this.axa.address, this.bara.address, order)
-
-      const orderArg = [...order, ...[getBigNumber(9), v, r, s]]
-      const digest = getLimitApprovalDigest(this.stopLimit, this.carol, this.axa.address, this.bara.address, order)
-      const data = getSushiLimitReceiverData([this.axa.address, this.bara.address], getBigNumber(1), this.bob.address)
-
-      await this.stopLimit.fillOrder(orderArg, this.axa.address, this.bara.address, this.limitReceiver.address, data)
-
-    })
-
   })
 
   describe('Order Cancellation', async function () {
