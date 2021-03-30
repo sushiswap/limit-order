@@ -270,6 +270,12 @@ describe("LimitOrder", function () {
     })
   })
 
+  describe('Swipe', async function () {
+    it('Should swipe balance', async function () {
+      await expect(this.stopLimit.swipe(this.axa.address))
+    })
+  })
+
   describe('Fill Order Open', async function () {
     it('Fill Open Order', async function () {
       const order = [this.carol.address, getBigNumber(9), getBigNumber(8), this.bob.address, 0, 4078384250, getBigNumber(1, 17), this.oracleMock.address, this.oracleData]
