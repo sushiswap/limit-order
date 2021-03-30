@@ -30,7 +30,7 @@ describe("LimitOrder", function () {
 
     await deploy(this, [
       ["stopLimit", this.StopLimitOrder, ["10000", this.bentoBox.address]],
-      ["limitReceiver", this.SushiSwapLimitOrderReceiver, [this.factory.address, this.bentoBox.address, pairCodeHash]],
+      ["limitReceiver", this.SushiSwapLimitOrderReceiver, [this.factory.address, this.bentoBox.address, pairCodeHash]]
     ])
 
     await this.stopLimit.whiteListReceiver(this.limitReceiver.address)
