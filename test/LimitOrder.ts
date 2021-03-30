@@ -8,7 +8,7 @@ const BYTES_ZERO = "0x0000000000000000000000000000000000000000000000000000000000
 describe("LimitOrder", function () {
 
   before(async function () {
-    await prepare(this, ['BentoBoxMock', 'SushiSwapFactoryMock', 'SushiSwapPairMock', 'WETH9Mock', 'StopLimitOrder', 'SushiSwapLimitOrderReceiver', 'ERC20Mock', 'OracleMock'])
+    await prepare(this, ['BentoBoxMock', 'SushiSwapFactoryMock', 'SushiSwapPairMock', 'WETH9Mock', 'StopLimitOrder', 'SushiSwapLimitOrderReceiver', 'ERC20Mock', 'OracleMock', 'MaliciousSushiSwapLimitOrderReceiver'])
     await deploy(this, [
       ["weth", this.WETH9Mock]
     ])
@@ -23,6 +23,7 @@ describe("LimitOrder", function () {
       ["bara", this.ERC20Mock, [getBigNumber(1000)]],
       ["ceta", this.ERC20Mock, [getBigNumber(1000)]],
       ["oracleMock", this.OracleMock, [getBigNumber(1)]],
+      ["MaliciousSushiSwapLimitOrderReceiver", this.SushiSwapFactoryMock],
     ])
 
     const pairCodeHash = await this.factory.pairCodeHash()
@@ -49,6 +50,8 @@ describe("LimitOrder", function () {
   })
 
   it("Should allow the execution of a stopLimit through SushiSwap", async function () {
+    console.log(this.MaliciousSushiSwapLimitOrderReceiver);
+
     expect(await this.bentoBox.balanceOf(this.bara.address, this.bob.address)).to.be.equal(0)
 
     const order = [this.carol.address, getBigNumber(9), getBigNumber(8), this.bob.address, 0, 4078384250, getBigNumber(1, 17), this.oracleMock.address, this.oracleData]
