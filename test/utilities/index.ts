@@ -30,7 +30,9 @@ export function getSushiLimitReceiverData(path, minimumOut, to) {
   )
 }
 
-export function getLimitApprovalDigest(limitOrder, user, tokenIn, tokenOut, order, chainId = 1) {
+
+export function getLimitApprovalDigest(limitOrder, user, tokenIn, tokenOut, order) {
+  let chainId = user.provider._network.chainId;
   const DOMAIN_SEPARATOR = getLimitDomainSeparator(limitOrder.address, chainId)
   const msg = defaultAbiCoder.encode(
       ["bytes32", "address", "address", "address", "uint256", "uint256", "address", "uint256", "uint256", "uint256", "address", "bytes"],
@@ -55,7 +57,7 @@ export function getLimitApprovalDigest(limitOrder, user, tokenIn, tokenOut, orde
 }
 
 export function getSignedLimitApprovalData(limitOrder, user, privateKey, tokenIn, tokenOut, order) {
-  const digest = getLimitApprovalDigest(limitOrder, user, tokenIn, tokenOut, order, user.provider._network.chainId)
+  const digest = getLimitApprovalDigest(limitOrder, user, tokenIn, tokenOut, order)
   const { v, r, s } = ecsign(Buffer.from(digest.slice(2), "hex"), Buffer.from(privateKey.replace("0x", ""), "hex"))
   return { v, r, s }
 }
