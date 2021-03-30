@@ -277,8 +277,8 @@ contract StopLimitOrder is BoringOwnable, BoringBatchable {
 
     function swipeFees (IERC20 token) public {
         feesCollected[token] = 1;
-        uint256 balance = token.balanceOf(address(this)).sub(1);
-        token.safeTransfer(feeTo, balance);
+        uint256 balance = bentoBox.balanceOf(token, address(this)).sub(1);
+        bentoBox.transfer(token, address(this), feeTo, bentoBox.toShare(token, balance, false));
         emit LogFeesCollected(token, feeTo, balance);
     }
 

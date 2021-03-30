@@ -241,11 +241,25 @@ describe("LimitOrder", function () {
   })
 
   describe('Swipe Fees', async function ()  {
-    it('Should swipe fees', async function () {
-      
-      await this.axa.transfer(this.stopLimit.address, getBigNumber(2))
 
-      await expect(this.stopLimit.swipeFees(this.axa.address))
+    it('Should revert with underflow', async function () {
+      await expect(this.stopLimit.swipeFees(this.bara.address))
+      .to.be.revertedWith(
+        "BoringMath: Underflow"
+      )
+    })
+
+    it('Should swipe fees', async function () {
+      const order = [this.carol.address, getBigNumber(9), getBigNumber(8), this.bob.address, 0, 4078384250, getBigNumber(1, 17), this.oracleMock.address, this.oracleData]
+      const {v,r,s} = getSignedLimitApprovalData(this.stopLimit, this.carol, this.carolPrivateKey, this.axa.address, this.bara.address, order)
+      
+      const orderArg = [...order, ...[getBigNumber(9), v,r,s]]
+
+      const data = getSushiLimitReceiverData([this.axa.address, this.bara.address], getBigNumber(1), this.bob.address)
+
+      await this.stopLimit.fillOrderOpen(orderArg, this.axa.address, this.bara.address, this.limitReceiver.address, data)
+
+      await expect(this.stopLimit.swipeFees(this.bara.address))
       .to.emit(this.stopLimit, 'LogFeesCollected')
     })
   })
