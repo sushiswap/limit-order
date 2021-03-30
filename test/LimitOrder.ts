@@ -22,15 +22,14 @@ describe("LimitOrder", function () {
       ["axa", this.ERC20Mock, [getBigNumber(1000)]],
       ["bara", this.ERC20Mock, [getBigNumber(1000)]],
       ["ceta", this.ERC20Mock, [getBigNumber(1000)]],
-      ["oracleMock", this.OracleMock, [getBigNumber(1)]],
-      ["MaliciousSushiSwapLimitOrderReceiver", this.SushiSwapFactoryMock],
-    ])
+      ["oracleMock", this.OracleMock, [getBigNumber(1)]],    ])
 
     const pairCodeHash = await this.factory.pairCodeHash()
 
     await deploy(this, [
       ["stopLimit", this.StopLimitOrder, ["10000", this.bentoBox.address]],
-      ["limitReceiver", this.SushiSwapLimitOrderReceiver, [this.factory.address, this.bentoBox.address, pairCodeHash]]
+      ["limitReceiver", this.SushiSwapLimitOrderReceiver, [this.factory.address, this.bentoBox.address, pairCodeHash]],
+      ["malLimitReceiver", this.MaliciousSushiSwapLimitOrderReceiver, [this.factory.address, this.bentoBox.address, pairCodeHash]]
     ])
 
     await this.stopLimit.whiteListReceiver(this.limitReceiver.address)
@@ -50,8 +49,6 @@ describe("LimitOrder", function () {
   })
 
   it("Should allow the execution of a stopLimit through SushiSwap", async function () {
-    console.log(this.MaliciousSushiSwapLimitOrderReceiver);
-
     expect(await this.bentoBox.balanceOf(this.bara.address, this.bob.address)).to.be.equal(0)
 
     const order = [this.carol.address, getBigNumber(9), getBigNumber(8), this.bob.address, 0, 4078384250, getBigNumber(1, 17), this.oracleMock.address, this.oracleData]
@@ -282,8 +279,24 @@ describe("LimitOrder", function () {
   })
 
   describe('Fill Order Open', async function () {
-    it('Should fill an open order', async function () {
 
+    it('Should revert if the contract does not receive the required fee', async function () {
+      expect(await this.bentoBox.balanceOf(this.bara.address, this.bob.address)).to.be.equal(0)
+
+      const order = [this.carol.address, getBigNumber(9), getBigNumber(8), this.bob.address, 0, 4078384250, getBigNumber(1, 17), this.oracleMock.address, this.oracleData]
+      const { v, r, s } = getSignedLimitApprovalData(this.stopLimit, this.carol, this.carolPrivateKey, this.axa.address, this.bara.address, order)
+
+      const orderArg = [...order, ...[getBigNumber(9), v, r, s]]
+      const digest = getLimitApprovalDigest(this.stopLimit, this.carol, this.axa.address, this.bara.address, order)
+      const data = getSushiLimitReceiverData([this.axa.address, this.bara.address], getBigNumber(1), this.bob.address)
+
+      await expect(this.stopLimit.fillOrderOpen(orderArg, this.axa.address, this.bara.address, this.malLimitReceiver.address, data))
+        .to.be.revertedWith(
+          "Limit: not enough"
+        )
+    })
+
+    it('Should fill an open order', async function () {
       const inAmount = getBigNumber(9);
       const outAmount = getBigNumber(8);
       const fillAmount = getBigNumber(9);
