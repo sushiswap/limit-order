@@ -252,14 +252,21 @@ describe("LimitOrder", function () {
 
       await this.stopLimit.fillOrderOpen(orderArg, this.axa.address, this.bara.address, this.limitReceiver.address, data)
 
+      const feeAmount = (await this.bentoBox.balanceOf(this.bara.address, this.stopLimit.address)).sub(1);
+
       await expect(this.stopLimit.swipeFees(this.bara.address))
         .to.emit(this.stopLimit, 'LogFeesCollected')
+
+      assert.equal(await this.bentoBox.balanceOf(this.bara.address, this.stopLimit.address), 1, "Fees weren't swiped");
+      assert.equal(feeAmount.toString(), (await this.bentoBox.balanceOf(this.bara.address, await this.stopLimit.feeTo())).toString(), "Fees weren't received");
     })
   })
 
   describe('Swipe', async function () {
     it('Should swipe balance', async function () {
-      await expect(this.stopLimit.swipe(this.axa.address))
+      await this.axa.transfer(this.stopLimit.address, 1);
+      await this.stopLimit.swipe(this.axa.address);
+      assert.equal(0, await this.axa.balanceOf(this.stopLimit.address), "Tokens weren't swiped weren't received");
     })
   })
 
