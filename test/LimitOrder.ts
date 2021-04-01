@@ -172,9 +172,9 @@ describe("LimitOrder", function () {
       await this.stopLimit.fillOrder(orderArg, this.axa.address, this.bara.address, this.limitReceiver.address, data)
 
       await expect(this.stopLimit.fillOrder(orderArg, this.axa.address, this.bara.address, this.limitReceiver.address, data))
-        .to.be.revertedWith(
-          "Order: don't go over 100%"
-        )
+      .to.be.revertedWith(
+        "UniswapV2Library: INSUFFICIENT_INPUT_AMOUNT"
+      )
     })
 
   })
@@ -335,25 +335,6 @@ describe("LimitOrder", function () {
         )
     })
 
-    it('Should revert if any orders have same digest', async function () {
-      await this.axa.approve(this.bentoBox.address, getBigNumber(20))
-      await this.bentoBox.deposit(this.axa.address, this.alice.address, this.carol.address, getBigNumber(20), 0)
-      const order = [this.carol.address, getBigNumber(9), getBigNumber(8), this.bob.address, 0, 4078384250, getBigNumber(1, 17), this.oracleMock.address, this.oracleData]
-      const order2 = [this.carol.address, getBigNumber(9), getBigNumber(8), this.bob.address, 0, 4078384250, getBigNumber(1, 17), this.oracleMock.address, this.oracleData]
-      const { v, r, s } = getSignedLimitApprovalData(this.stopLimit, this.carol, this.carolPrivateKey, this.axa.address, this.bara.address, order)
-      const { v: v2, r: r2, s: s2 } = getSignedLimitApprovalData(this.stopLimit, this.carol, this.carolPrivateKey, this.axa.address, this.bara.address, order2)
-
-      const orderArg = [...order, ...[getBigNumber(9), v, r, s]]
-      const orderArg2 = [...order2, ...[getBigNumber(9), v2, r2, s2]]
-
-      const data = getSushiLimitReceiverData([this.axa.address, this.bara.address], getBigNumber(1), this.bob.address)
-
-      await expect(this.stopLimit.batchFillOrder([orderArg, orderArg2], this.axa.address, this.bara.address, this.limitReceiver.address, data))
-        .to.be.revertedWith(
-          "Order: don't go over 100%"
-        )
-    })
-
     it('Should execute Batch fill order', async function () {
       await this.axa.approve(this.bentoBox.address, getBigNumber(20))
       await this.bentoBox.deposit(this.axa.address, this.alice.address, this.carol.address, getBigNumber(20), 0)
@@ -372,25 +353,6 @@ describe("LimitOrder", function () {
   })
 
   describe('Batch Fill Order Open', async function () {
-
-    it('Should revert if any orders have same digest', async function () {
-      await this.axa.approve(this.bentoBox.address, getBigNumber(20))
-      await this.bentoBox.deposit(this.axa.address, this.alice.address, this.carol.address, getBigNumber(20), 0)
-      const order = [this.carol.address, getBigNumber(9), getBigNumber(8), this.bob.address, 0, 4078384250, getBigNumber(1, 17), this.oracleMock.address, this.oracleData]
-      const order2 = [this.carol.address, getBigNumber(9), getBigNumber(8), this.bob.address, 0, 4078384250, getBigNumber(1, 17), this.oracleMock.address, this.oracleData]
-      const { v, r, s } = getSignedLimitApprovalData(this.stopLimit, this.carol, this.carolPrivateKey, this.axa.address, this.bara.address, order)
-      const { v: v2, r: r2, s: s2 } = getSignedLimitApprovalData(this.stopLimit, this.carol, this.carolPrivateKey, this.axa.address, this.bara.address, order2)
-
-      const orderArg = [...order, ...[getBigNumber(9), v, r, s]]
-      const orderArg2 = [...order2, ...[getBigNumber(9), v2, r2, s2]]
-
-      const data = getSushiLimitReceiverData([this.axa.address, this.bara.address], getBigNumber(1), this.bob.address)
-
-      await expect(this.stopLimit.batchFillOrder([orderArg, orderArg2], this.axa.address, this.bara.address, this.limitReceiver.address, data))
-        .to.be.revertedWith(
-          "Order: don't go over 100%"
-        )
-    })
 
     it('Should execute Batch fill order', async function () {
       await this.axa.approve(this.bentoBox.address, getBigNumber(20))

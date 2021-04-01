@@ -126,7 +126,7 @@ contract StopLimitOrder is BoringOwnable, BoringBatchable {
     }
 
 
-    function _preFillOrder(OrderArgs memory order, IERC20 tokenIn, IERC20 tokenOut, ILimitOrderReceiver receiver) internal returns (bytes32 digest, uint256 amountToBeReturned) {
+    function _preFillOrder(OrderArgs memory order, IERC20 tokenIn, IERC20 tokenOut, ILimitOrderReceiver receiver) internal returns (bytes32 digest, uint256 amountToBeReturned, uint256 amountToBeFilled) {
         
         {
             if(order.oracleAddress != IOracle(0)){
@@ -142,19 +142,24 @@ contract StopLimitOrder is BoringOwnable, BoringBatchable {
         require(order.startTime <= block.timestamp && block.timestamp <= order.endTime, "order-expired");
 
         require(ecrecover(digest, order.v, order.r, order.s) == order.maker, "Limit: not maker");
-        
+
+
+        uint256 newFilledAmount;
+        {
+        uint256 currentFilledAmount = orderStatus[digest];
+        newFilledAmount = currentFilledAmount.add(order.amountToFill);
+        amountToBeFilled = newFilledAmount <= order.amountIn ? 
+                                order.amountToFill :
+                                order.amountIn.sub(currentFilledAmount);
+        }
         // Amount is either the right amount or short changed
-        amountToBeReturned = order.amountOut.mul(order.amountToFill) / order.amountIn;
-
-        uint256 newFilledAmount = orderStatus[digest].add(order.amountToFill);
-        require(newFilledAmount <= order.amountIn, "Order: don't go over 100%");
-
+        amountToBeReturned = order.amountOut.mul(amountToBeFilled) / order.amountIn;
         // Effects
         orderStatus[digest] = newFilledAmount;
 
-        bentoBox.transfer(tokenIn, order.maker, address(receiver), bentoBox.toShare(tokenIn, order.amountToFill, false));
+        bentoBox.transfer(tokenIn, order.maker, address(receiver), bentoBox.toShare(tokenIn, amountToBeFilled, false));
 
-        emit LogFillOrder(order.maker, digest, receiver, order.amountToFill);
+        emit LogFillOrder(order.maker, digest, receiver, amountToBeFilled);
     }
 
     function _fillOrderInternal(
@@ -181,9 +186,9 @@ contract StopLimitOrder is BoringOwnable, BoringBatchable {
     public {
         require(isWhiteListed[receiver], "LimitOrder: not whitelisted");
         
-        (, uint256 amountToBeReturned) = _preFillOrder(order, tokenIn, tokenOut, receiver);
+        (, uint256 amountToBeReturned, uint256 amountToBeFilled) = _preFillOrder(order, tokenIn, tokenOut, receiver);
         
-        _fillOrderInternal(tokenIn, tokenOut, receiver, data, order.amountToFill, amountToBeReturned, 0);
+        _fillOrderInternal(tokenIn, tokenOut, receiver, data, amountToBeFilled, amountToBeReturned, 0);
 
         bentoBox.transfer(tokenOut, address(this), order.recipient, bentoBox.toShare(tokenOut, amountToBeReturned, false));
 
@@ -196,10 +201,10 @@ contract StopLimitOrder is BoringOwnable, BoringBatchable {
             ILimitOrderReceiver receiver, 
             bytes calldata data) 
     public {
-        (, uint256 amountToBeReturned) = _preFillOrder(order, tokenIn, tokenOut, receiver);
+        (, uint256 amountToBeReturned, uint256 amountToBeFilled) = _preFillOrder(order, tokenIn, tokenOut, receiver);
         uint256 fee = amountToBeReturned.mul(externalOrderFee) / FEE_DIVISOR;
 
-        uint256 _feesCollected = _fillOrderInternal(tokenIn, tokenOut, receiver, data, order.amountToFill, amountToBeReturned, fee);
+        uint256 _feesCollected = _fillOrderInternal(tokenIn, tokenOut, receiver, data, amountToBeFilled, amountToBeReturned, fee);
 
         feesCollected[tokenOut] = _feesCollected.add(bentoBox.toShare(tokenOut, fee, true));
 
@@ -220,9 +225,10 @@ contract StopLimitOrder is BoringOwnable, BoringBatchable {
         uint256 totalAmountToBeReturned;
 
         for(uint256 i = 0; i < order.length; i++) {
-            (, amountToBeReturned[i]) = _preFillOrder(order[i], tokenIn, tokenOut, receiver);
+            uint256 amountToBeFilled;
+            (, amountToBeReturned[i], amountToBeFilled) = _preFillOrder(order[i], tokenIn, tokenOut, receiver);
 
-            totalAmountToBeFilled = totalAmountToBeFilled.add(order[i].amountToFill);
+            totalAmountToBeFilled = totalAmountToBeFilled.add(amountToBeFilled);
             totalAmountToBeReturned = totalAmountToBeReturned.add(amountToBeReturned[i]);
         }
         _fillOrderInternal(tokenIn, tokenOut, receiver, data, totalAmountToBeFilled, totalAmountToBeReturned, 0);
@@ -246,9 +252,10 @@ contract StopLimitOrder is BoringOwnable, BoringBatchable {
         uint256 totalAmountToBeReturned;
 
         for(uint256 i = 0; i < order.length; i++) {
-            (, amountToBeReturned[i]) = _preFillOrder(order[i], tokenIn, tokenOut, receiver);
+            uint256 amountToBeFilled;
+            (, amountToBeReturned[i], amountToBeFilled) = _preFillOrder(order[i], tokenIn, tokenOut, receiver);
 
-            totalAmountToBeFilled = totalAmountToBeFilled.add(order[i].amountToFill);
+            totalAmountToBeFilled = totalAmountToBeFilled.add(amountToBeFilled);
             totalAmountToBeReturned = totalAmountToBeReturned.add(amountToBeReturned[i]);
         }
         
