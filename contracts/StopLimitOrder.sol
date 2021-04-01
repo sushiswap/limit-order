@@ -164,7 +164,7 @@ contract StopLimitOrder is BoringOwnable, BoringBatchable {
         bytes calldata data, 
         uint256 amountToFill, 
         uint256 amountToBeReturned, 
-        uint256 fee) 
+        uint256 fee)
     internal returns(uint256 _feesCollected){
         receiver.onLimitOrder(tokenIn, tokenOut, amountToFill, amountToBeReturned.add(fee), data);
 
@@ -275,7 +275,7 @@ contract StopLimitOrder is BoringOwnable, BoringBatchable {
         emit LogOrderCancelled(msg.sender, hash);
     }
 
-    function swipeFees (IERC20 token) public {
+    function swipeFees(IERC20 token) public {
         feesCollected[token] = 1;
         uint256 balance = bentoBox.balanceOf(token, address(this)).sub(1);
         bentoBox.transfer(token, address(this), feeTo, balance);
