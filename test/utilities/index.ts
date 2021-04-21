@@ -11,7 +11,7 @@ export const BASE_TEN = 10
 export const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000"
 
 const LIMIT_TYPEHASH = keccak256(
-  toUtf8Bytes("LimitOrder(address maker,address tokenIn,address tokenOut,uint256 amountIn,uint256 amountOut,address recipient,uint256 startTime,uint256 endTime,uint256 stopPrice,address oracleAddress,bytes32 oracleData)")
+  toUtf8Bytes("LimitOrder(address maker,address tokenIn,address tokenOut,uint256 amountIn,uint256 amountOut,address recipient,uint256 startTime,uint256 endTime,uint256 stopPrice,address oracleAddress,bytes oracleData)")
 )
 
 function getLimitDomainSeparator(tokenAddress, chainId) {
