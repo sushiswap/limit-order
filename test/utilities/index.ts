@@ -11,7 +11,7 @@ export const BASE_TEN = 10
 export const ADDRESS_ZERO = "0x0000000000000000000000000000000000000000"
 
 const LIMIT_TYPEHASH = keccak256(
-  toUtf8Bytes("LimitOrder(address maker,address tokenIn,address tokenOut,uint256 amountIn,uint256 amountOut,address recipient,uint256 startTime,uint256 endTime,uint256 stopPrice,address oracleAddress,bytes oracleData)")
+  toUtf8Bytes("LimitOrder(address maker,address tokenIn,address tokenOut,uint256 amountIn,uint256 amountOut,address recipient,uint256 startTime,uint256 endTime,uint256 stopPrice,address oracleAddress,bytes32 oracleData)")
 )
 
 function getLimitDomainSeparator(tokenAddress, chainId) {
@@ -35,7 +35,7 @@ export function getLimitApprovalDigest(limitOrder, user, tokenIn, tokenOut, orde
   let chainId = user.provider._network.chainId;
   const DOMAIN_SEPARATOR = getLimitDomainSeparator(limitOrder.address, chainId)
   const msg = defaultAbiCoder.encode(
-      ["bytes32", "address", "address", "address", "uint256", "uint256", "address", "uint256", "uint256", "uint256", "address", "bytes"],
+      ["bytes32", "address", "address", "address", "uint256", "uint256", "address", "uint256", "uint256", "uint256", "address", "bytes32"],
       [
           LIMIT_TYPEHASH,
           order[0],
@@ -48,7 +48,7 @@ export function getLimitApprovalDigest(limitOrder, user, tokenIn, tokenOut, orde
           order[5],
           order[6],
           order[7],
-          order[8],
+          keccak256(order[8]),
       ]
   )
   

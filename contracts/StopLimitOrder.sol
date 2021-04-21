@@ -42,7 +42,7 @@ contract StopLimitOrder is BoringOwnable, BoringBatchable {
         );
     bytes32 private constant ORDER_TYPEHASH =
         keccak256(
-            "LimitOrder(address maker,address tokenIn,address tokenOut,uint256 amountIn,uint256 amountOut,address recipient,uint256 startTime,uint256 endTime,uint256 stopPrice,address oracleAddress,bytes oracleData)"
+            "LimitOrder(address maker,address tokenIn,address tokenOut,uint256 amountIn,uint256 amountOut,address recipient,uint256 startTime,uint256 endTime,uint256 stopPrice,address oracleAddress,bytes32 oracleData)"
         );
     bytes32 private immutable _DOMAIN_SEPARATOR;
     uint256 public immutable deploymentChainId;
@@ -141,7 +141,7 @@ contract StopLimitOrder is BoringOwnable, BoringBatchable {
                     order.endTime,
                     order.stopPrice,
                     order.oracleAddress,
-                    order.oracleData
+                    keccak256(order.oracleData)
                 )
             );
 
