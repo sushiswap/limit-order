@@ -35,7 +35,7 @@ export function getLimitApprovalDigest(limitOrder, user, tokenIn, tokenOut, orde
   let chainId = user.provider._network.chainId;
   const DOMAIN_SEPARATOR = getLimitDomainSeparator(limitOrder.address, chainId)
   const msg = defaultAbiCoder.encode(
-      ["bytes32", "address", "address", "address", "uint256", "uint256", "address", "uint256", "uint256", "uint256", "address", "bytes"],
+      ["bytes32", "address", "address", "address", "uint256", "uint256", "address", "uint256", "uint256", "uint256", "address", "bytes32"],
       [
           LIMIT_TYPEHASH,
           order[0],
@@ -48,7 +48,7 @@ export function getLimitApprovalDigest(limitOrder, user, tokenIn, tokenOut, orde
           order[5],
           order[6],
           order[7],
-          order[8],
+          keccak256(order[8]),
       ]
   )
   

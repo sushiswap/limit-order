@@ -111,7 +111,7 @@ contract StopLimitOrder is BoringOwnable, BoringBatchable {
                 order.endTime,
                 order.stopPrice,
                 order.oracleAddress,
-                order.oracleData
+                keccak256(order.oracleData)
             )
         );
         
