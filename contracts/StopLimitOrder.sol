@@ -157,7 +157,7 @@ contract StopLimitOrder is BoringOwnable, BoringBatchable {
         // Effects
         orderStatus[digest] = newFilledAmount;
 
-        bentoBox.transfer(tokenIn, order.maker, address(receiver), bentoBox.toShare(tokenIn, amountToBeFilled, false));
+        bentoBox.transfer(tokenIn, order.maker, address(receiver), bentoBox.toShare(tokenIn, amountToBeFilled, true));
 
         emit LogFillOrder(order.maker, digest, receiver, amountToBeFilled);
     }
