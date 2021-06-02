@@ -30,6 +30,12 @@ export function getSushiLimitReceiverData(path, minimumOut, to) {
   )
 }
 
+export function getSushiLimitReceiverData2(path, minimumOut, to, keepTokenIn) {
+  return defaultAbiCoder.encode(
+    ["address[]", "uint256", "address", "bool"],
+    [path, minimumOut, to, keepTokenIn]
+  )
+}
 
 export function getLimitApprovalDigest(limitOrder, user, tokenIn, tokenOut, order) {
   let chainId = user.provider._network.chainId;

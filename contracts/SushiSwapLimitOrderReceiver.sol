@@ -9,7 +9,6 @@ import "./libraries/UniswapV2Library.sol";
 import "@sushiswap/core/contracts/uniswapv2/libraries/TransferHelper.sol";
 import "@sushiswap/bentobox-sdk/contracts/IBentoBoxV1.sol";
 import "./interfaces/ILimitOrderReceiver.sol";
-import "hardhat/console.sol";
 
 
 contract SushiSwapLimitOrderReceiver is ILimitOrderReceiver {
@@ -34,13 +33,6 @@ contract SushiSwapLimitOrderReceiver is ILimitOrderReceiver {
         uint256 amountOut = _swapExactTokensForTokens(amountIn, amountOutMinExternal, path, address(bentoBox));
         bentoBox.deposit(tokenOut, address(bentoBox), msg.sender, amountMinOut, 0);
         bentoBox.deposit(tokenOut, address(bentoBox), to, amountOut.sub(amountMinOut), 0);
-    }
-
-    function getOutputAmount (IERC20 tokenIn, IERC20 tokenOut, uint256 amountIn, uint256 amountMinOut, bytes calldata data) external view returns (uint256 amountOut){
-        (address[] memory path, uint256 amountOutMinExternal, address to) = abi.decode(data, (address[], uint256, address));
-
-        uint256[] memory amounts = UniswapV2Library.getAmountsOut(factory, amountIn, path, pairCodeHash);
-        amountOut = amounts[amounts.length - 1];
     }
 
     // Swaps an exact amount of tokens for another token through the path passed as an argument

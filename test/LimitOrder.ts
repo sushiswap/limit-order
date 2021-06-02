@@ -1,14 +1,12 @@
-import { ethers } from "hardhat";
 import { expect, assert } from "chai";
-import { advanceBlockTo, advanceBlock, prepare, deploy, getBigNumber, ADDRESS_ZERO, createSLP, getSignedLimitApprovalData, getSushiLimitReceiverData, getLimitApprovalDigest } from "../test/utilities"
-import { BigNumber } from "@ethersproject/bignumber";
+import { prepare, deploy, getBigNumber, ADDRESS_ZERO, createSLP, getSignedLimitApprovalData, getSushiLimitReceiverData, getLimitApprovalDigest, getSushiLimitReceiverData2 } from "../test/utilities"
 import { describe } from "mocha";
 
 const BYTES_ZERO = "0x0000000000000000000000000000000000000000000000000000000000000000"
 describe("LimitOrder", function () {
 
   before(async function () {
-    await prepare(this, ['BentoBoxMock', 'SushiSwapFactoryMock', 'SushiSwapPairMock', 'WETH9Mock', 'StopLimitOrder', 'SushiSwapLimitOrderReceiver', 'ERC20Mock', 'OracleMock', 'MaliciousSushiSwapLimitOrderReceiver'])
+    await prepare(this, ['BentoBoxMock', 'SushiSwapFactoryMock', 'SushiSwapPairMock', 'WETH9Mock', 'StopLimitOrder', 'SushiSwapLimitOrderReceiver', 'SushiSwapLimitOrderReceiver2', 'ERC20Mock', 'OracleMock', 'MaliciousSushiSwapLimitOrderReceiver'])
     await deploy(this, [
       ["weth", this.WETH9Mock]
     ])
@@ -29,10 +27,13 @@ describe("LimitOrder", function () {
     await deploy(this, [
       ["stopLimit", this.StopLimitOrder, ["10000", this.bentoBox.address]],
       ["limitReceiver", this.SushiSwapLimitOrderReceiver, [this.factory.address, this.bentoBox.address, pairCodeHash]],
+      ["limitReceiver2", this.SushiSwapLimitOrderReceiver2, [this.factory.address, this.bentoBox.address, pairCodeHash]],
       ["malLimitReceiver", this.MaliciousSushiSwapLimitOrderReceiver, [this.factory.address, this.bentoBox.address, pairCodeHash]]
     ])
 
-    await this.stopLimit.whiteListReceiver(this.limitReceiver.address)
+    await this.stopLimit.whiteListReceiver(this.limitReceiver.address);
+
+    await this.stopLimit.whiteListReceiver(this.limitReceiver2.address);
 
     await this.bentoBox.whitelistMasterContract(this.stopLimit.address, true)
 
@@ -111,6 +112,24 @@ describe("LimitOrder", function () {
         .to.emit(this.stopLimit, "LogFillOrder")
         .withArgs(this.carol.address, digest, this.limitReceiver.address, getBigNumber(9))
 
+    })
+
+    it('Should take profit in tokenIn', async function () {
+      const order = [this.carol.address, getBigNumber(9), getBigNumber(8), this.bob.address, 0, 4078384250, getBigNumber(2), ADDRESS_ZERO, this.oracleData]
+      const { v, r, s } = getSignedLimitApprovalData(this.stopLimit, this.carol, this.carolPrivateKey, this.axa.address, this.bara.address, order)
+
+      const orderArg = [...order, ...[getBigNumber(9), v, r, s]]
+      const digest = getLimitApprovalDigest(this.stopLimit, this.carol, this.axa.address, this.bara.address, order)
+
+      const data = getSushiLimitReceiverData2([this.axa.address, this.bara.address], getBigNumber(9), this.bob.address, true)
+
+      const oldBalance = await this.bentoBox.balanceOf(this.axa.address, this.bob.address);
+
+      await expect(this.stopLimit.fillOrder(orderArg, this.axa.address, this.bara.address, this.limitReceiver2.address, data))
+        .to.emit(this.stopLimit, "LogFillOrder")
+        .withArgs(this.carol.address, digest, this.limitReceiver2.address, getBigNumber(9));
+
+      expect(oldBalance.lt(await this.bentoBox.balanceOf(this.axa.address, this.bob.address))).to.be.eq(true, "Relayer did not take profit in token in")
     })
 
     it('Should revert when order is cancelled', async function () {
