@@ -15,11 +15,8 @@ import { HardhatUserConfig, task } from "hardhat/config";
 
 import { removeConsoleLog } from "hardhat-preprocessor";
 
-const accounts = {
-  mnemonic:
-    process.env.MNEMONIC ||
-    "test test test test test test test test test test test junk",
-};
+/* const accounts = { mnemonic:process.env.MNEMONIC || "test test test test test test test test test test test junk" }; */
+const accounts = [process.env.PRIVATE_KEY];
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -111,6 +108,14 @@ const config: HardhatUserConfig = {
       live: true,
       saveDeployments: true,
       tags: ["staging"],
+    },
+    polygon: {
+      url: 'https://rpc-mainnet.matic.network',
+      accounts,
+      chainId: 137,
+      live: true,
+      saveDeployments: true,
+      tags: ["staging"]
     }
   },
   preprocess: {
