@@ -19,14 +19,16 @@ export default async (hre: HardhatRuntimeEnvironment) => {
 
   const stopLimitOrder = new hre.ethers.Contract(deployedStopLimitOrder.address, deployedStopLimitOrder.abi, await hre.ethers.getSigner(deployer)) as StopLimitOrder;
 
-  const owner = await stopLimitOrder.owner();
-
-  if (owner !== process.env.NEW_OWNER) await stopLimitOrder.transferOwnership(process.env.NEW_OWNER, true, false);
-
   const deployedReceiver = await hre.deployments.deploy("SushiSwapLimitOrderReceiver", {
     from: deployer,
     args: [factory, bentoBoxAddress, pairCodeHash]
   });
+
+  await stopLimitOrder.whiteListReceiver(deployedReceiver.address);
+
+  const owner = await stopLimitOrder.owner();
+
+  if (owner !== process.env.NEW_OWNER) await stopLimitOrder.transferOwnership(process.env.NEW_OWNER, true, false);
 
   console.log(`LimitOrder deployed to ${deployedStopLimitOrder.address} on ${hre.network.name} with owner ${owner}. Tx hash: ${deployedStopLimitOrder.transactionHash}`);
   console.log(`Receiver deployed to ${deployedReceiver.address} on ${hre.network.name}. Tx hash: ${deployedReceiver.transactionHash}`);
