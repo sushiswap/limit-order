@@ -37,13 +37,6 @@ contract MaliciousSushiSwapLimitOrderReceiver is ILimitOrderReceiver {
         bentoBox.deposit(tokenOut, address(bentoBox), to, amountOut.sub(amountMinOut), 0);
     }
 
-    function getOutputAmount (IERC20 tokenIn, IERC20 tokenOut, uint256 amountIn, uint256 amountMinOut, bytes calldata data) external view returns (uint256 amountOut){
-        (address[] memory path, uint256 amountOutMinExternal, address to) = abi.decode(data, (address[], uint256, address));
-
-        uint256[] memory amounts = UniswapV2Library.getAmountsOut(factory, amountIn, path, pairCodeHash);
-        amountOut = amounts[amounts.length - 1];
-    }
-
     // Swaps an exact amount of tokens for another token through the path passed as an argument
     // Returns the amount of the final token
     function _swapExactTokensForTokens(

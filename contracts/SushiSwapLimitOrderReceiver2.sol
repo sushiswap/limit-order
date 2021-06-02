@@ -9,8 +9,6 @@ import "./libraries/UniswapV2Library.sol";
 import "@sushiswap/core/contracts/uniswapv2/libraries/TransferHelper.sol";
 import "@sushiswap/bentobox-sdk/contracts/IBentoBoxV1.sol";
 import "./interfaces/ILimitOrderReceiver.sol";
-import "hardhat/console.sol";
-
 
 contract SushiSwapLimitOrderReceiver2 is ILimitOrderReceiver {
     using BoringERC20 for IERC20;
