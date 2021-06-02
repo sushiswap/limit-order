@@ -6,7 +6,7 @@ cache/
 artifacts/
 
 # Deployments
-deployments/
+# deployments/
 
 # Typechain
 typechain/
