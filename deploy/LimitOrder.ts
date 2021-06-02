@@ -30,7 +30,7 @@ export default async (hre: HardhatRuntimeEnvironment) => {
 
   if (owner !== process.env.NEW_OWNER) await stopLimitOrder.transferOwnership(process.env.NEW_OWNER, true, false);
 
-  console.log(`LimitOrder deployed to ${deployedStopLimitOrder.address} on ${hre.network.name} with owner ${owner}. Tx hash: ${deployedStopLimitOrder.transactionHash}`);
+  console.log(`LimitOrder deployed to ${deployedStopLimitOrder.address} on ${hre.network.name}. Tx hash: ${deployedStopLimitOrder.transactionHash}`);
   console.log(`Receiver deployed to ${deployedReceiver.address} on ${hre.network.name}. Tx hash: ${deployedReceiver.transactionHash}`);
 
 };
