@@ -151,6 +151,7 @@ contract StopLimitOrder is BoringOwnable, BoringBatchable {
         amountToBeFilled = newFilledAmount <= order.amountIn ? 
                                 order.amountToFill :
                                 order.amountIn.sub(currentFilledAmount);
+        newFilledAmount = currentFilledAmount + amountToBeFilled;
         }
         // Amount is either the right amount or short changed
         amountToBeReturned = order.amountOut.mul(amountToBeFilled) / order.amountIn;
