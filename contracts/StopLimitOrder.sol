@@ -207,7 +207,7 @@ contract StopLimitOrder is BoringOwnable, BoringBatchable {
 
         uint256 _feesCollected = _fillOrderInternal(tokenIn, tokenOut, receiver, data, amountToBeFilled, amountToBeReturned, fee);
 
-        feesCollected[tokenOut] = _feesCollected.add(bentoBox.toShare(tokenOut, fee, true));
+        feesCollected[tokenOut] = _feesCollected.add(bentoBox.toShare(tokenOut, fee, false));
 
         bentoBox.transfer(tokenOut, address(this), order.recipient, bentoBox.toShare(tokenOut, amountToBeReturned, false));
     }
@@ -265,7 +265,7 @@ contract StopLimitOrder is BoringOwnable, BoringBatchable {
         {
             
         uint256 _feesCollected = _fillOrderInternal(tokenIn, tokenOut, receiver, data, totalAmountToBeFilled, totalAmountToBeReturned, totalFee);
-        feesCollected[tokenOut] = _feesCollected.add(bentoBox.toShare(tokenOut, totalFee, true));
+        feesCollected[tokenOut] = _feesCollected.add(bentoBox.toShare(tokenOut, totalFee, false));
 
         }
 
