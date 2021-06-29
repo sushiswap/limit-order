@@ -1,4 +1,6 @@
 import { StopLimitOrder } from '../typechain/StopLimitOrder';
+import "@nomiclabs/hardhat-ethers";
+import 'hardhat-deploy';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 
 export default async (hre: HardhatRuntimeEnvironment) => {
@@ -24,7 +26,13 @@ export default async (hre: HardhatRuntimeEnvironment) => {
     args: [factory, bentoBoxAddress, pairCodeHash]
   });
 
+  const deployedReceiver2 = await hre.deployments.deploy("SushiSwapLimitOrderReceiver2", {
+    from: deployer,
+    args: [factory, bentoBoxAddress, pairCodeHash]
+  });
+
   await stopLimitOrder.whiteListReceiver(deployedReceiver.address);
+  await stopLimitOrder.whiteListReceiver(deployedReceiver2.address);
 
   const owner = await stopLimitOrder.owner();
 
@@ -32,6 +40,7 @@ export default async (hre: HardhatRuntimeEnvironment) => {
 
   console.log(`LimitOrder deployed to ${deployedStopLimitOrder.address} on ${hre.network.name}. Tx hash: ${deployedStopLimitOrder.transactionHash}`);
   console.log(`Receiver deployed to ${deployedReceiver.address} on ${hre.network.name}. Tx hash: ${deployedReceiver.transactionHash}`);
+  console.log(`Receiver2 deployed to ${deployedReceiver2.address} on ${hre.network.name}. Tx hash: ${deployedReceiver2.transactionHash}`);
 
 };
 

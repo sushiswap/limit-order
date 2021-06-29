@@ -9,10 +9,10 @@ import "@boringcrypto/boring-solidity/contracts/libraries/BoringERC20.sol";
 import "@boringcrypto/boring-solidity/contracts/libraries/BoringRebase.sol";
 import "@sushiswap/bentobox-sdk/contracts/IBentoBoxV1.sol";
 import "./interfaces/ILimitOrderReceiver.sol";
+import "./interfaces/IStopLimitOrder.sol";
 import "./interfaces/IOracle.sol";
 
-// TODO: Run prettier?
-contract StopLimitOrder is BoringOwnable, BoringBatchable {
+contract Helper {
     using BoringMath for uint256;
     using BoringERC20 for IERC20;
     using RebaseLibrary for Rebase;
@@ -33,6 +33,7 @@ contract StopLimitOrder is BoringOwnable, BoringBatchable {
         bytes32 s;
     }
 
+    IStopLimitOrder public immutable stopLimitORder;
     // See https://eips.ethereum.org/EIPS/eip-191
     string private constant EIP191_PREFIX_FOR_EIP712_STRUCTURED_DATA = "\x19\x01";
     bytes32 private constant DOMAIN_SEPARATOR_SIGNATURE_HASH = keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
