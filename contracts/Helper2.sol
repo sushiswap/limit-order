@@ -12,7 +12,7 @@ import "./interfaces/ILimitOrderReceiver.sol";
 import "./interfaces/IStopLimitOrder.sol";
 import "./interfaces/IOracle.sol";
 
-contract Helper {
+contract Helper2 {
     using BoringMath for uint256;
     using BoringERC20 for IERC20;
     using RebaseLibrary for Rebase;
