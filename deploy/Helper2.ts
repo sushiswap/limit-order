@@ -1,5 +1,9 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { BENTOBOX_ADDRESS, FACTORY_ADDRESS, INIT_CODE_HASH } from "@sushiswap/core-sdk";
+import {
+  BENTOBOX_ADDRESS,
+  FACTORY_ADDRESS,
+  INIT_CODE_HASH,
+} from "@sushiswap/core-sdk";
 import { DeployFunction } from "hardhat-deploy/dist/types";
 
 const func: DeployFunction = async function ({
@@ -7,7 +11,7 @@ const func: DeployFunction = async function ({
   network,
   deployments,
   getChainId,
-  getContract
+  ethers: { getContract },
 }: HardhatRuntimeEnvironment) {
   const { deployer } = await getNamedAccounts();
 
