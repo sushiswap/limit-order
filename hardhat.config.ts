@@ -11,12 +11,12 @@ import "hardhat-gas-reporter";
 import "hardhat-spdx-license-identifier";
 import "hardhat-watcher";
 import "solidity-coverage";
+import "./tasks";
 
 import { HardhatUserConfig, task } from "hardhat/config";
 
 import { removeConsoleLog } from "hardhat-preprocessor";
 
-/* const accounts = { mnemonic:process.env.MNEMONIC || "test test test test test test test test test test test junk" }; */
 const accounts = {
   mnemonic:
     process.env.MNEMONIC ||
@@ -73,6 +73,14 @@ const config: HardhatUserConfig = {
       live: false,
       saveDeployments: true,
       tags: ["test", "local"],
+    },
+    ethereum: {
+      url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_API_KEY}`,
+      accounts,
+      chainId: 1,
+      live: true,
+      saveDeployments: true,
+      tags: ["mainnet"],
     },
     ropsten: {
       url: `https://ropsten.infura.io/v3/${process.env.INFURA_API_KEY}`,
