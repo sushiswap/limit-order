@@ -6,9 +6,10 @@ task("whitelist-receiver", "Whitelist receiver")
     { address },
     { ethers: { getNamedSigner, getContract } }
   ) {
+    const dev = await getNamedSigner("dev");
     const stopLimitOrder = await getContract("StopLimitOrder");
 
-    await stopLimitOrder.whiteListReceiver(address);
+    await stopLimitOrder.connect(dev).whiteListReceiver(address);
 
     console.log("Receiver whitelisted!");
   });
