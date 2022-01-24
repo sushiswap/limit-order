@@ -1,0 +1,105 @@
+{
+  "address": "0x75a5263bddD871E94188611f3563aabc833Cc005",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "contract IBentoBox",
+          "name": "_bentoBox",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [],
+      "name": "bentoBox",
+      "outputs": [
+        {
+          "internalType": "contract IBentoBox",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "masterContract",
+          "type": "address"
+        },
+        {
+          "internalType": "bool",
+          "name": "approved",
+          "type": "bool"
+        },
+        {
+          "internalType": "uint8",
+          "name": "v",
+          "type": "uint8"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "r",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "s",
+          "type": "bytes32"
+        }
+      ],
+      "name": "depositAndApprove",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0x217f5c716e20e953817fddf50d875f857740fec857b8eb18e01155020773e62a",
+  "receipt": {
+    "to": null,
+    "from": "0xCc159BCb6a466DA442D254Ad934125f05DAB66b5",
+    "contractAddress": "0x75a5263bddD871E94188611f3563aabc833Cc005",
+    "transactionIndex": 203,
+    "gasUsed": "182902",
+    "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0x33c0d35900ecd20ea17abd7fc6025abd032a4867e99e4114368f33a3f3305cad",
+    "transactionHash": "0x217f5c716e20e953817fddf50d875f857740fec857b8eb18e01155020773e62a",
+    "logs": [],
+    "blockNumber": 14069965,
+    "cumulativeGasUsed": "12815955",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [
+    "0xF5BCE5077908a1b7370B9ae04AdC565EBd643966"
+  ],
+  "numDeployments": 1,
+  "solcInputHash": "86fa876226c74c3a5fdd473b65c0f895",
+  "metadata": "{\"compiler\":{\"version\":\"0.6.12+commit.27d51765\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"contract IBentoBox\",\"name\":\"_bentoBox\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[],\"name\":\"bentoBox\",\"outputs\":[{\"internalType\":\"contract IBentoBox\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"user\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"masterContract\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"approved\",\"type\":\"bool\"},{\"internalType\":\"uint8\",\"name\":\"v\",\"type\":\"uint8\"},{\"internalType\":\"bytes32\",\"name\":\"r\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"s\",\"type\":\"bytes32\"}],\"name\":\"depositAndApprove\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/Helper.sol\":\"Helper\"},\"evmVersion\":\"istanbul\",\"libraries\":{\"__CACHE_BREAKER__\":\"0x00000000d41867734bbee4c6863d9255b2b06ac1\"},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[]},\"sources\":{\"contracts/Helper.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity 0.6.12;\\n\\ninterface IBentoBox {\\n  function setMasterContractApproval(\\n    address user,\\n    address masterContract,\\n    bool approved,\\n    uint8 v,\\n    bytes32 r,\\n    bytes32 s\\n  ) external;\\n\\n  function deposit(\\n    address token,\\n    address from,\\n    address to,\\n    uint256 amount,\\n    uint256 share\\n  ) external payable; \\n}\\n\\ncontract Helper {\\n  \\n  IBentoBox public immutable bentoBox;\\n\\n  constructor(IBentoBox _bentoBox) public {\\n    bentoBox = _bentoBox;\\n  }\\n\\n  function depositAndApprove(\\n    address user,\\n    address masterContract,\\n    bool approved,\\n    uint8 v,\\n    bytes32 r,\\n    bytes32 s\\n  ) public payable {\\n    \\n    bentoBox.deposit{value: msg.value}(address(0), address(this), msg.sender, msg.value, 0);\\n    \\n    bentoBox.setMasterContractApproval(user, masterContract, approved, v, r, s);\\n\\n  }\\n  \\n}\",\"keccak256\":\"0x574c21a293ac89cd5da37da6f200449b009a35740df1bae51716e5a7af6c6040\",\"license\":\"MIT\"}},\"version\":1}",
+  "bytecode": "0x60a060405234801561001057600080fd5b506040516102c53803806102c58339818101604052602081101561003357600080fd5b5051606081901b6001600160601b0319166080526001600160a01b03166102556100706000398060b0528061010f52806101b452506102556000f3fe6080604052600436106100295760003560e01c80636b2ace871461002e578063e7157add1461005f575b600080fd5b34801561003a57600080fd5b506100436100ae565b604080516001600160a01b039092168252519081900360200190f35b6100ac600480360360c081101561007557600080fd5b506001600160a01b038135811691602081013590911690604081013515159060ff6060820135169060808101359060a001356100d2565b005b7f000000000000000000000000000000000000000000000000000000000000000081565b6040805162ae511b60e21b815260006004820181905230602483015233604483015234606483018190526084830182905292516001600160a01b037f000000000000000000000000000000000000000000000000000000000000000016936302b9446c93909260a480830193919282900301818588803b15801561015557600080fd5b505af1158015610169573d6000803e3d6000fd5b50506040805163c0a47c9360e01b81526001600160a01b038b811660048301528a81166024830152891515604483015260ff891660648301526084820188905260a4820187905291517f0000000000000000000000000000000000000000000000000000000000000000909216945063c0a47c93935060c480820193506000929182900301818387803b1580156101ff57600080fd5b505af1158015610213573d6000803e3d6000fd5b5050505050505050505056fea26469706673582212200dbc6ab57e86003112d1b1b6cf2e1e9890f1c8bd0c5110b48f6cfb759ff2231164736f6c634300060c0033",
+  "deployedBytecode": "0x6080604052600436106100295760003560e01c80636b2ace871461002e578063e7157add1461005f575b600080fd5b34801561003a57600080fd5b506100436100ae565b604080516001600160a01b039092168252519081900360200190f35b6100ac600480360360c081101561007557600080fd5b506001600160a01b038135811691602081013590911690604081013515159060ff6060820135169060808101359060a001356100d2565b005b7f000000000000000000000000000000000000000000000000000000000000000081565b6040805162ae511b60e21b815260006004820181905230602483015233604483015234606483018190526084830182905292516001600160a01b037f000000000000000000000000000000000000000000000000000000000000000016936302b9446c93909260a480830193919282900301818588803b15801561015557600080fd5b505af1158015610169573d6000803e3d6000fd5b50506040805163c0a47c9360e01b81526001600160a01b038b811660048301528a81166024830152891515604483015260ff891660648301526084820188905260a4820187905291517f0000000000000000000000000000000000000000000000000000000000000000909216945063c0a47c93935060c480820193506000929182900301818387803b1580156101ff57600080fd5b505af1158015610213573d6000803e3d6000fd5b5050505050505050505056fea26469706673582212200dbc6ab57e86003112d1b1b6cf2e1e9890f1c8bd0c5110b48f6cfb759ff2231164736f6c634300060c0033",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {},
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {},
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [],
+    "types": null
+  }
+}
