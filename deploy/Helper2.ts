@@ -13,7 +13,7 @@ const func: DeployFunction = async function ({
   getChainId,
   ethers: { getContract },
 }: HardhatRuntimeEnvironment) {
-  const { deployer } = await getNamedAccounts();
+  const { dev } = await getNamedAccounts();
 
   const chainId = Number(await getChainId());
 
@@ -33,11 +33,13 @@ const func: DeployFunction = async function ({
   const factory = FACTORY_ADDRESS[chainId];
   const pairCodeHash = INIT_CODE_HASH[chainId];
 
-  const stopLimitOrder = await getContract("StopLimitOrder");
+  const { address: stopLimitOrderAddress } = await getContract(
+    "StopLimitOrder"
+  );
 
   const { address, transactionHash } = await deployments.deploy("Helper2", {
-    from: deployer,
-    args: [stopLimitOrder, bentoBoxAddress, factory, pairCodeHash],
+    from: dev,
+    args: [stopLimitOrderAddress, bentoBoxAddress, factory, pairCodeHash],
   });
 
   console.log(
@@ -45,6 +47,8 @@ const func: DeployFunction = async function ({
   );
 };
 
-func.dependencies = [];
+func.dependencies = ["StopLimitOrder"];
 
 func.tags = ["Helper2"];
+
+export default func;

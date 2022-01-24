@@ -8,7 +8,7 @@ const func: DeployFunction = async function ({
   deployments,
   getChainId,
 }: HardhatRuntimeEnvironment) {
-  const { deployer } = await getNamedAccounts();
+  const { dev } = await getNamedAccounts();
 
   const chainId = Number(await getChainId());
 
@@ -19,7 +19,7 @@ const func: DeployFunction = async function ({
   const bentoBoxAddress = BENTOBOX_ADDRESS[chainId];
 
   const { address, transactionHash } = await deployments.deploy("Helper", {
-    from: deployer,
+    from: dev,
     args: [bentoBoxAddress],
   });
 
@@ -31,3 +31,5 @@ const func: DeployFunction = async function ({
 func.dependencies = [];
 
 func.tags = ["Helper"];
+
+export default func;

@@ -12,7 +12,7 @@ const func: DeployFunction = async function ({
   deployments,
   getChainId,
 }: HardhatRuntimeEnvironment) {
-  const { deployer } = await getNamedAccounts();
+  const { dev } = await getNamedAccounts();
 
   const chainId = Number(await getChainId());
 
@@ -35,7 +35,7 @@ const func: DeployFunction = async function ({
   const { address, transactionHash } = await deployments.deploy(
     "SushiSwapLimitOrderReceiver2",
     {
-      from: deployer,
+      from: dev,
       args: [factory, bentoBoxAddress, pairCodeHash],
     }
   );
@@ -48,3 +48,5 @@ const func: DeployFunction = async function ({
 func.dependencies = ["StopLimitOrder"];
 
 func.tags = ["SushiSwapLimitOrderReceiver2"];
+
+export default func;

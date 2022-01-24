@@ -9,7 +9,7 @@ const func: DeployFunction = async function ({
   deployments,
   getChainId,
 }: HardhatRuntimeEnvironment) {
-  const { deployer, dev } = await getNamedAccounts();
+  const { dev } = await getNamedAccounts();
 
   const chainId = Number(await getChainId());
 
@@ -23,13 +23,13 @@ const func: DeployFunction = async function ({
 
   console.log(
     "Account balance:",
-    (await ethers.provider.getBalance(deployer)).toString()
+    (await ethers.provider.getBalance(dev)).toString()
   );
 
   const { address, transactionHash } = await deployments.deploy(
     "StopLimitOrder",
     {
-      from: deployer,
+      from: dev,
       args: [fee, bentoBoxAddress],
     }
   );
