@@ -1,4 +1,3 @@
-import { StopLimitOrder } from "../types/StopLimitOrder";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { BENTOBOX_ADDRESS } from "@sushiswap/core-sdk";
 import { DeployFunction } from "hardhat-deploy/dist/types";
