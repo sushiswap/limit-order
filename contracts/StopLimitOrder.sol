@@ -151,6 +151,7 @@ contract StopLimitOrder is BoringOwnable, BoringBatchable {
         amountToBeFilled = newFilledAmount <= order.amountIn ? 
                                 order.amountToFill :
                                 order.amountIn.sub(currentFilledAmount);
+        newFilledAmount = currentFilledAmount + amountToBeFilled;
         }
         // Amount is either the right amount or short changed
         amountToBeReturned = order.amountOut.mul(amountToBeFilled) / order.amountIn;
@@ -174,7 +175,7 @@ contract StopLimitOrder is BoringOwnable, BoringBatchable {
         receiver.onLimitOrder(tokenIn, tokenOut, amountToFill, amountToBeReturned.add(fee), data);
 
         _feesCollected = feesCollected[tokenOut];
-        require(bentoBox.balanceOf(tokenOut, address(this)) >= bentoBox.toShare(tokenOut, amountToBeReturned.add(fee), true).add(_feesCollected), "Limit: not enough");
+        require(bentoBox.balanceOf(tokenOut, address(this)) >= bentoBox.toShare(tokenOut, amountToBeReturned.add(fee), false).add(_feesCollected), "Limit: not enough");
     }
 
     function fillOrder(
@@ -206,7 +207,7 @@ contract StopLimitOrder is BoringOwnable, BoringBatchable {
 
         uint256 _feesCollected = _fillOrderInternal(tokenIn, tokenOut, receiver, data, amountToBeFilled, amountToBeReturned, fee);
 
-        feesCollected[tokenOut] = _feesCollected.add(bentoBox.toShare(tokenOut, fee, true));
+        feesCollected[tokenOut] = _feesCollected.add(bentoBox.toShare(tokenOut, fee, false));
 
         bentoBox.transfer(tokenOut, address(this), order.recipient, bentoBox.toShare(tokenOut, amountToBeReturned, false));
     }
@@ -264,7 +265,7 @@ contract StopLimitOrder is BoringOwnable, BoringBatchable {
         {
             
         uint256 _feesCollected = _fillOrderInternal(tokenIn, tokenOut, receiver, data, totalAmountToBeFilled, totalAmountToBeReturned, totalFee);
-        feesCollected[tokenOut] = _feesCollected.add(bentoBox.toShare(tokenOut, totalFee, true));
+        feesCollected[tokenOut] = _feesCollected.add(bentoBox.toShare(tokenOut, totalFee, false));
 
         }
 
