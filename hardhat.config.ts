@@ -2,21 +2,26 @@ import "dotenv/config";
 import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-solhint";
 import "@nomiclabs/hardhat-waffle";
+import "@nomiclabs/hardhat-ethers";
+import "@tenderly/hardhat-tenderly";
+import "@typechain/hardhat";
+import "hardhat-contract-sizer";
 import "hardhat-deploy";
-import "hardhat-deploy-ethers";
 import "hardhat-gas-reporter";
 import "hardhat-spdx-license-identifier";
-import "hardhat-typechain";
 import "hardhat-watcher";
 import "solidity-coverage";
-import "@tenderly/hardhat-tenderly";
 
 import { HardhatUserConfig, task } from "hardhat/config";
 
 import { removeConsoleLog } from "hardhat-preprocessor";
 
 /* const accounts = { mnemonic:process.env.MNEMONIC || "test test test test test test test test test test test junk" }; */
-const accounts = [process.env.PRIVATE_KEY];
+const accounts = {
+  mnemonic:
+    process.env.MNEMONIC ||
+    "test test test test test test test test test test test junk",
+};
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -94,7 +99,7 @@ const config: HardhatUserConfig = {
       tags: ["staging"],
     },
     moonbase: {
-      url: 'https://rpc.testnet.moonbeam.network',
+      url: "https://rpc.testnet.moonbeam.network",
       accounts,
       chainId: 1287,
       live: true,
@@ -102,7 +107,7 @@ const config: HardhatUserConfig = {
       tags: ["staging"],
     },
     arbitrum: {
-      url: 'https://kovan3.arbitrum.io/rpc',
+      url: "https://kovan3.arbitrum.io/rpc",
       accounts,
       chainId: 79377087078960,
       live: true,
@@ -110,13 +115,13 @@ const config: HardhatUserConfig = {
       tags: ["staging"],
     },
     polygon: {
-      url: 'https://rpc-mainnet.matic.network',
+      url: "https://rpc-mainnet.matic.network",
       accounts,
       chainId: 137,
       live: true,
       saveDeployments: true,
-      tags: ["staging"]
-    }
+      tags: ["staging"],
+    },
   },
   preprocess: {
     eachLine: removeConsoleLog(
@@ -134,8 +139,12 @@ const config: HardhatUserConfig = {
     },
   },
   tenderly: {
-    project: process.env.TENDERLY_PROJECT,
-    username: process.env.TENDERLY_USERNAME,
+    project: String(process.env.TENDERLY_PROJECT),
+    username: String(process.env.TENDERLY_USERNAME),
+  },
+  typechain: {
+    outDir: "typechain",
+    target: "ethers-v5",
   },
   watcher: {
     compile: {
