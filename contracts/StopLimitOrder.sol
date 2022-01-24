@@ -174,7 +174,7 @@ contract StopLimitOrder is BoringOwnable, BoringBatchable {
         receiver.onLimitOrder(tokenIn, tokenOut, amountToFill, amountToBeReturned.add(fee), data);
 
         _feesCollected = feesCollected[tokenOut];
-        require(bentoBox.balanceOf(tokenOut, address(this)) >= bentoBox.toShare(tokenOut, amountToBeReturned.add(fee), true).add(_feesCollected), "Limit: not enough");
+        require(bentoBox.balanceOf(tokenOut, address(this)) >= bentoBox.toShare(tokenOut, amountToBeReturned.add(fee), false).add(_feesCollected), "Limit: not enough");
     }
 
     function fillOrder(
