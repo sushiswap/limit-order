@@ -47,14 +47,17 @@ const config: HardhatUserConfig = {
     deployer: {
       default: 0,
     },
-    alice: {
+    dev: {
       default: 1,
     },
-    bob: {
+    alice: {
       default: 2,
     },
-    carol: {
+    bob: {
       default: 3,
+    },
+    carol: {
+      default: 4,
     },
   },
   networks: {
@@ -64,8 +67,6 @@ const config: HardhatUserConfig = {
       tags: ["local"],
     },
     hardhat: {
-      // Seems to be a bug with this, even when false it complains about being unauthenticated.
-      // Reported to HardHat team and fix is incoming
       forking: {
         enabled: process.env.FORKING === "true",
         url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_API_KEY}`,
