@@ -33,6 +33,7 @@ contract SushiSwapLimitOrderReceiver3 is ILimitOrderReceiver {
         
         if (keepTokenIn) {
             // amountExternal is the maximum amount of tokenIn we are willing to trade for tokenOut
+            // donating one unit to avoid round up problem
             uint256 profit = amountIn.sub(_swapTokensForExactTokens(amountMinOut.add(1), amountExternal, path, address(bentoBox)));
             bentoBox.deposit(tokenOut, address(bentoBox), msg.sender, amountMinOut.add(1), 0);
             tokenIn.safeTransfer(address(bentoBox), profit);
