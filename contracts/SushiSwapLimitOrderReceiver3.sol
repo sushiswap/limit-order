@@ -42,7 +42,7 @@ contract SushiSwapLimitOrderReceiver3 is ILimitOrderReceiver {
         } else {
             // amountExternal is the minimum amount of tokenOut we are prepared to recieve in the trade
             uint256 amountOut = _swapExactTokensForTokens(amountIn, amountExternal, path, address(bentoBox));
-            bentoBox.deposit(tokenOut, address(bentoBox), msg.sender, amountMinOut, 0);
+            bentoBox.deposit(tokenOut, address(bentoBox), msg.sender, amountMinOut.add(1), 0);
             bentoBox.deposit(tokenOut, address(bentoBox), to, amountOut.sub(amountMinOut), 0);
 
         }
