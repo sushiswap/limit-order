@@ -45,7 +45,7 @@ const func: DeployFunction = async function ({
   );
 };
 
-func.dependencies = ["StopLimitOrder"];
+func.dependencies = [];
 
 func.tags = ["SushiSwapLimitOrderReceiver3"];
 
