@@ -21,7 +21,9 @@ task(
     const sushiSwapLimitOrderReceiver2 = await ethers.getContract(
       "SushiSwapLimitOrderReceiver2"
     );
-
+    const sushiSwapLimitOrderReceiver3 = await ethers.getContract(
+      "SushiSwapLimitOrderReceiver3"
+    );
     const contracts: {
       name: string;
       address: string;
@@ -59,6 +61,15 @@ task(
       {
         name: "SushiSwapLimitOrderReceiver2",
         address: sushiSwapLimitOrderReceiver2.address,
+        constructorArguments: [
+          FACTORY_ADDRESS[chainId],
+          BENTOBOX_ADDRESS[chainId],
+          INIT_CODE_HASH[chainId],
+        ],
+      },
+      {
+        name: "SushiSwapLimitOrderReceiver3",
+        address: sushiSwapLimitOrderReceiver3.address,
         constructorArguments: [
           FACTORY_ADDRESS[chainId],
           BENTOBOX_ADDRESS[chainId],
