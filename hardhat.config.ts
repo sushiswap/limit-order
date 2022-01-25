@@ -124,7 +124,7 @@ const config: HardhatUserConfig = {
       tags: ["staging"],
     },
     polygon: {
-      url: "https://rpc-mainnet.matic.network",
+      url: "https://polygon-rpc.com",
       accounts,
       chainId: 137,
       live: true,
